@@ -1,8 +1,9 @@
 import { Node, nodeClass, type PropDef } from '../../engine';
-import { ed, on, setProp, setScript, renameNode, refreshFiles } from '../state';
+import { ed, on, exec, setProp, setScript, renameNode, refreshFiles, inspectFile } from '../state';
 import { api, projectUrl } from '../api';
 import { h, clear, ask, toast } from '../ui';
 import { openScript } from '../script-editor';
+import { createFilePreview } from '../preview';
 
 export const SCRIPT_TEMPLATE = (path: string, node: string) => `// ${path}
 // ${node} 노드에 붙은 스크립트. this.node 는 그 노드, this.game 은 실행 중인 게임.
@@ -53,10 +54,9 @@ function editor(n: Node, def: PropDef): HTMLElement {
   const set = (x: unknown) => setProp(n, def.name, x);
   switch (def.type) {
     case 'number': case 'int': return numberInput(v, def, set, def.type === 'int');
-    case 'vec2': {
-      const fx = numberInput(v.x, def, (x) => set({ ...n.props[def.name], x }), false);
-      const fy = numberInput(v.y, def, (y) => set({ ...n.props[def.name], y }), false);
-      return h('div', { class: 'vec2' }, h('span', { class: 'axis x' }, 'x'), fx, h('span', { class: 'axis y' }, 'y'), fy);
+    case 'vec2': case 'vec3': {
+      const axes = def.type === 'vec3' ? ['x', 'y', 'z'] : ['x', 'y'];
+      return h('div', { class: 'vec2' }, axes.map((a) => [h('span', { class: 'axis ' + a }, a), numberInput(v[a], def, (x) => set({ ...n.props[def.name], [a]: x }), false)]));
     }
     case 'bool': return h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: !!v, onchange: (e: Event) => set((e.target as HTMLInputElement).checked) }), v ? '켜짐' : '꺼짐');
     case 'color': {
@@ -70,10 +70,26 @@ function editor(n: Node, def: PropDef): HTMLElement {
       const images = ed.files.filter((f) => !f.dir && /\.(png|jpe?g|gif|webp)$/i.test(f.path));
       const sel = h('select', { onchange: (e: Event) => set((e.target as HTMLSelectElement).value) },
         h('option', { value: '' }, '(없음)'), images.map((f) => h('option', { value: f.path, selected: f.path === v }, f.path.replace('res://', ''))));
-      const thumb = v ? h('img', { class: 'thumb', src: projectUrl(v) }) : null;
+      const thumb = v ? h('img', { class: 'thumb', src: projectUrl(v), title: '그림 미리보기', onclick: () => inspectFile(v) }) : null;
       const box = h('div', { class: 'texture' }, thumb, sel);
       box.addEventListener('dragover', (e) => e.preventDefault());
       box.addEventListener('drop', (e) => { const p = e.dataTransfer?.getData('text/x-engine-path'); if (p && /\.(png|jpe?g|gif|webp)$/i.test(p)) { e.preventDefault(); set(p); } });
+      return box;
+    }
+    case 'model': {
+      // picking a model file also switches a MeshInstance3D from its box/sphere to "model", in one undo step
+      const setModel = (p: string) => {
+        const before = { model: n.props.model, mesh: n.props.mesh };
+        const after = { model: p, mesh: p && 'mesh' in n.props ? 'model' : n.props.mesh };
+        if (before.model === after.model && before.mesh === after.mesh) return;
+        exec({ label: `${n.name}.model`, do: () => { Object.assign(n.props, after); }, undo: () => { Object.assign(n.props, before); } });
+      };
+      const models = ed.files.filter((f) => !f.dir && /\.(glb|gltf)$/i.test(f.path));
+      const sel = h('select', { onchange: (e: Event) => setModel((e.target as HTMLSelectElement).value) },
+        h('option', { value: '' }, '(없음)'), models.map((f) => h('option', { value: f.path, selected: f.path === v }, f.path.replace('res://', ''))));
+      const box = h('div', { class: 'texture' }, sel, v ? h('button', { class: 'icon-btn', title: '모델 미리보기', onclick: () => inspectFile(v) }, '🔍') : null);
+      box.addEventListener('dragover', (e) => e.preventDefault());
+      box.addEventListener('drop', (e) => { const p = e.dataTransfer?.getData('text/x-engine-path'); if (p && /\.(glb|gltf)$/i.test(p)) { e.preventDefault(); setModel(p); } });
       return box;
     }
     default: return h('input', { type: 'text', value: v ?? '', onchange: (e: Event) => set((e.target as HTMLInputElement).value) });
@@ -82,7 +98,16 @@ function editor(n: Node, def: PropDef): HTMLElement {
 
 export function createInspector(): HTMLElement {
   const body = h('div', { class: 'dock-body inspector' });
+  let preview = ''; // "path|mtime" of the file preview on screen, so scene edits don't restart it
   const render = () => {
+    if (ed.inspectFile) {
+      const key = ed.inspectFile + '|' + (ed.files.find((f) => f.path === ed.inspectFile)?.mtime || 0);
+      if (key === preview) return;
+      preview = key;
+      clear(body).append(createFilePreview(ed.inspectFile, () => inspectFile('')));
+      return;
+    }
+    preview = '';
     // keep the field being typed in (and its caret) across re-renders
     const active = document.activeElement as HTMLInputElement | null;
     const focusKey = active && body.contains(active) ? active.closest('[data-prop]')?.getAttribute('data-prop') + '|' + [...(active.closest('[data-prop]')?.querySelectorAll('input,select,textarea') || [])].indexOf(active) : null;
@@ -108,7 +133,7 @@ export function createInspector(): HTMLElement {
       for (const def of g.props) {
         const label = h('label', { title: def.hint || def.name }, def.name);
         if (def.type === 'number' || def.type === 'int') scrub(label, () => n.props[def.name], (v) => setProp(n, def.name, def.type === 'int' ? Math.round(v) : v), def.step ?? (def.type === 'int' ? 1 : 0.1));
-        body.append(h('div', { class: 'insp-row', 'data-prop': def.name }, label, editor(n, def)));
+        body.append(h('div', { class: 'insp-row' + (def.type === 'vec3' ? ' vec' : ''), 'data-prop': def.name }, label, editor(n, def)));
       }
     }
     if (focusKey) {
@@ -117,7 +142,7 @@ export function createInspector(): HTMLElement {
       el?.focus();
     }
   };
-  on('selection', render); on('scene', render); on('files', render);
+  on('selection', render); on('scene', render); on('files', render); on('inspect', render);
   render();
   return h('div', { class: 'dock' }, h('div', { class: 'dock-title' }, '인스펙터'), body);
 }

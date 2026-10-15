@@ -59,12 +59,14 @@ const byZ = (a: Node, b: Node) => ((a as Node2D).zIndex || 0) - ((b as Node2D).z
 export class Renderer {
   constructor(public textures: Textures) {}
 
-  render(ctx: CanvasRenderingContext2D, root: Node | null, v: View, background = '#000000'): void {
+  /** underlay: the 3D layer (already at the canvas size), drawn over the background and under the 2D world. */
+  render(ctx: CanvasRenderingContext2D, root: Node | null, v: View, background = '#000000', underlay: CanvasImageSource | null = null): void {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.imageSmoothingEnabled = false;
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
     if (background) { ctx.fillStyle = background; ctx.fillRect(0, 0, v.width, v.height); }
+    if (underlay) ctx.drawImage(underlay, 0, 0, v.width, v.height);
     if (!root) return;
     const layers: CanvasLayer[] = [];
     const modulates: CanvasModulate[] = [];

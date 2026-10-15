@@ -1,0 +1,236 @@
+{
+ "format": 1,
+ "root": {
+  "type": "Node3D",
+  "name": "Cabin",
+  "script": "res://scripts/cabin.js",
+  "children": [
+   {
+    "type": "WorldEnvironment",
+    "name": "Env",
+    "props": {
+     "background": "#9cc7ea",
+     "ambientColor": "#dfe8ff",
+     "ambientEnergy": 0.55,
+     "fogColor": "#bcd3e6",
+     "fogDensity": 0.012
+    }
+   },
+   {
+    "type": "DirectionalLight3D",
+    "name": "Sun",
+    "props": { "rotation": { "x": -35, "y": -40, "z": 0 }, "color": "#fff1d6", "energy": 1.2, "shadows": true }
+   },
+   {
+    "type": "Camera3D",
+    "name": "Camera",
+    "props": { "position": { "x": 0, "y": 1.25, "z": 0.9 }, "rotation": { "x": -4, "y": 0, "z": 0 }, "fov": 62 }
+   },
+   {
+    "type": "OmniLight3D",
+    "name": "Lamp",
+    "props": { "position": { "x": 0, "y": 2.1, "z": -0.4 }, "energy": 0.5, "range": 4 }
+   },
+   {
+    "type": "Node3D",
+    "name": "Interior",
+    "children": [
+     {
+      "type": "MeshInstance3D",
+      "name": "Floor",
+      "props": { "mesh": "plane", "size": { "x": 6, "y": 1, "z": 3 }, "color": "#5d4c3f" }
+     },
+     {
+      "type": "MeshInstance3D",
+      "name": "WallLow",
+      "props": {
+       "position": { "x": 0, "y": 0.45, "z": -1.2 },
+       "size": { "x": 6, "y": 0.9, "z": 0.12 },
+       "color": "#c9b79c"
+      }
+     },
+     {
+      "type": "MeshInstance3D",
+      "name": "WallHigh",
+      "props": {
+       "position": { "x": 0, "y": 2.125, "z": -1.2 },
+       "size": { "x": 6, "y": 0.55, "z": 0.12 },
+       "color": "#c9b79c"
+      }
+     },
+     {
+      "type": "MeshInstance3D",
+      "name": "PillarL",
+      "props": {
+       "position": { "x": -2.5, "y": 1.375, "z": -1.2 },
+       "size": { "x": 2, "y": 0.95, "z": 0.12 },
+       "color": "#c9b79c"
+      }
+     },
+     {
+      "type": "MeshInstance3D",
+      "name": "PillarR",
+      "props": {
+       "position": { "x": 2.5, "y": 1.375, "z": -1.2 },
+       "size": { "x": 2, "y": 0.95, "z": 0.12 },
+       "color": "#c9b79c"
+      }
+     },
+     {
+      "type": "MeshInstance3D",
+      "name": "Sill",
+      "props": {
+       "position": { "x": 0, "y": 0.93, "z": -1.12 },
+       "size": { "x": 3.1, "y": 0.06, "z": 0.25 },
+       "color": "#8a5a3c"
+      }
+     },
+     {
+      "type": "MeshInstance3D",
+      "name": "Table",
+      "props": {
+       "position": { "x": 0, "y": 0.74, "z": -0.85 },
+       "size": { "x": 0.9, "y": 0.06, "z": 0.55 },
+       "color": "#8a5a3c"
+      }
+     },
+     {
+      "type": "MeshInstance3D",
+      "name": "Leg",
+      "props": {
+       "position": { "x": 0, "y": 0.36, "z": -0.85 },
+       "mesh": "cylinder",
+       "size": { "x": 0.08, "y": 0.72, "z": 0.08 },
+       "color": "#4a3a2e"
+      }
+     },
+     {
+      "type": "MeshInstance3D",
+      "name": "Cup",
+      "props": {
+       "position": { "x": 0.22, "y": 0.82, "z": -0.8 },
+       "mesh": "cylinder",
+       "size": { "x": 0.08, "y": 0.1, "z": 0.08 },
+       "color": "#f2efe8"
+      }
+     }
+    ]
+   },
+   {
+    "type": "Node3D",
+    "name": "Outside",
+    "children": [
+     {
+      "type": "MeshInstance3D",
+      "name": "Ground",
+      "props": {
+       "position": { "x": 0, "y": -0.6, "z": -151.3 },
+       "mesh": "plane",
+       "size": { "x": 400, "y": 1, "z": 300 },
+       "color": "#6f9a4a"
+      }
+     },
+     {
+      "type": "Sprite3D",
+      "name": "Mountains",
+      "props": {
+       "position": { "x": 0, "y": 8, "z": -90 },
+       "texture": "res://art/brienz/far.png",
+       "pixelSize": 0.14
+      }
+     },
+     {
+      "type": "Sprite3D",
+      "name": "Hills",
+      "props": {
+       "position": { "x": 0, "y": 2, "z": -40 },
+       "texture": "res://art/brienz/mid.png",
+       "pixelSize": 0.05
+      }
+     },
+     {
+      "type": "Node3D",
+      "name": "Trees",
+      "children": [
+       {
+        "type": "MeshInstance3D",
+        "name": "Pine1",
+        "props": {
+         "position": { "x": -13, "y": -0.6, "z": -5 },
+         "scale": { "x": 1.4, "y": 1.4, "z": 1.4 },
+         "mesh": "model",
+         "model": "res://models/pine.glb"
+        }
+       },
+       {
+        "type": "MeshInstance3D",
+        "name": "Pine2",
+        "props": {
+         "position": { "x": -8, "y": -0.6, "z": -8.5 },
+         "scale": { "x": 1.8, "y": 1.8, "z": 1.8 },
+         "mesh": "model",
+         "model": "res://models/pine.glb"
+        }
+       },
+       {
+        "type": "MeshInstance3D",
+        "name": "Pine3",
+        "props": {
+         "position": { "x": -3, "y": -0.6, "z": -4.5 },
+         "scale": { "x": 1.2, "y": 1.2, "z": 1.2 },
+         "mesh": "model",
+         "model": "res://models/pine.glb"
+        }
+       },
+       {
+        "type": "MeshInstance3D",
+        "name": "Pine4",
+        "props": {
+         "position": { "x": 2, "y": -0.6, "z": -7 },
+         "scale": { "x": 1.6, "y": 1.6, "z": 1.6 },
+         "mesh": "model",
+         "model": "res://models/pine.glb"
+        }
+       },
+       {
+        "type": "MeshInstance3D",
+        "name": "Pine5",
+        "props": {
+         "position": { "x": 7, "y": -0.6, "z": -5.5 },
+         "scale": { "x": 1.3, "y": 1.3, "z": 1.3 },
+         "mesh": "model",
+         "model": "res://models/pine.glb"
+        }
+       },
+       {
+        "type": "MeshInstance3D",
+        "name": "Pine6",
+        "props": {
+         "position": { "x": 11, "y": -0.6, "z": -9 },
+         "scale": { "x": 1.9, "y": 1.9, "z": 1.9 },
+         "mesh": "model",
+         "model": "res://models/pine.glb"
+        }
+       },
+       {
+        "type": "MeshInstance3D",
+        "name": "Pine7",
+        "props": {
+         "position": { "x": 15, "y": -0.6, "z": -6 },
+         "scale": { "x": 1.5, "y": 1.5, "z": 1.5 },
+         "mesh": "model",
+         "model": "res://models/pine.glb"
+        }
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "type": "CanvasLayer",
+    "name": "HUD",
+    "children": [{ "type": "Label", "name": "Info", "props": { "position": { "x": 6, "y": 4 }, "text": "3D 객실" } }]
+   }
+  ]
+ }
+}

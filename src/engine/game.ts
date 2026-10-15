@@ -1,5 +1,6 @@
 import { Node, type ScriptInstance } from './node';
 import { Camera2D } from './nodes/scene-nodes';
+import { has3D } from './nodes/node3d';
 import { parseScene } from './scene';
 import { Renderer, type View } from './renderer';
 import { Textures } from './textures';
@@ -15,7 +16,8 @@ export interface ProjectConfig {
 }
 
 /**
- * Runs a scene: loads it, attaches scripts, calls ready() once and process(dt) every frame, draws through the current Camera2D.
+ * Runs a scene: loads it, attaches scripts, calls ready() once and process(dt) every frame, draws through the current Camera2D
+ * (and the current Camera3D for 3D nodes, underneath the 2D world).
  * resolve() turns res:// paths into URLs, so the same runtime works in the editor's play window and in an exported web build.
  */
 export class Game {
@@ -28,6 +30,8 @@ export class Game {
   private raf = 0;
   private last = 0;
   private scripts: ScriptInstance[] = [];
+  /** The 3D layer, created (and three.js loaded) only when a scene has 3D nodes. */
+  three: { render(root: Node | null): HTMLCanvasElement } | null = null;
 
   constructor(
     public canvas: HTMLCanvasElement,
@@ -52,6 +56,10 @@ export class Game {
   /** Replace the running scene (like Godot's change_scene_to_file). */
   async changeScene(path: string): Promise<void> {
     const root = await this.loadScene(path);
+    if (has3D(root) && !this.three) {
+      const { GameRenderer3D } = await import('./three/game3d');
+      this.three = new GameRenderer3D(this.resolve, this.project.viewport.width, this.project.viewport.height);
+    }
     await this.attachScripts(root);
     this.root = root;
     this.callReady(root);
@@ -119,7 +127,8 @@ export class Game {
     this.time += dt;
     for (const s of this.scripts) this.safe(s, 'process', dt);
     this.input.endFrame();
-    this.renderer.render(this.ctx, this.root, this.view(), this.project.background || '#000000');
+    const under = this.three ? this.three.render(this.root) : null;
+    this.renderer.render(this.ctx, this.root, this.view(), this.project.background || '#000000', under);
   }
 
   start(): void {

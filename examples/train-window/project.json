@@ -1,11 +1,26 @@
 {
  "name": "창가석 기차 여행 (엔진 예제)",
  "mainScene": "res://scenes/main.scene.json",
- "viewport": { "width": 560, "height": 240 },
+ "viewport": {
+  "width": 560,
+  "height": 240
+ },
  "background": "#000000",
  "input": {
-  "faster": ["ArrowRight", "KeyD"],
-  "slower": ["ArrowLeft", "KeyA"],
-  "skip_time": ["KeyT"]
+  "faster": [
+   "ArrowRight",
+   "KeyD"
+  ],
+  "slower": [
+   "ArrowLeft",
+   "KeyA"
+  ],
+  "skip_time": [
+   "KeyT"
+  ],
+  "switch_view": [
+   "Space",
+   "KeyC"
+  ]
  }
 }

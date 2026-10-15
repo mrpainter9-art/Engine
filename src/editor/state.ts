@@ -1,4 +1,4 @@
-import { Node, parseScene, serializeScene, createNode, nodeToData, dataToNode, clone, sameValue, type ProjectConfig } from '../engine';
+import { Node, Node2D, Node3D, CanvasLayer, parseScene, serializeScene, createNode, nodeToData, dataToNode, clone, sameValue, has3D, type ProjectConfig } from '../engine';
 import { api, type FileEntry } from './api';
 
 /** One open scene tab: its node tree, undo history and editor camera. */
@@ -10,6 +10,7 @@ export interface OpenScene {
   undo: Command[];
   redo: Command[];
   view: { x: number; y: number; zoom: number } | null;
+  view3d?: { pos: number[]; target: number[] };
   mtime?: number;
 }
 
@@ -17,7 +18,7 @@ export interface OpenScript { path: string; text: string; saved: string; mtime?:
 
 export interface Command { label: string; do(): void; undo(): void; key?: string; at?: number }
 
-type Event = 'files' | 'scenes' | 'scene' | 'selection' | 'tab' | 'scripts' | 'project' | 'log';
+type Event = 'files' | 'scenes' | 'scene' | 'selection' | 'tab' | 'scripts' | 'project' | 'log' | 'inspect';
 const subs = new Map<Event, Set<() => void>>();
 export const on = (e: Event, fn: () => void) => { if (!subs.has(e)) subs.set(e, new Set()); subs.get(e)!.add(fn); };
 export const emit = (e: Event) => subs.get(e)?.forEach((fn) => fn());
@@ -28,11 +29,34 @@ export const ed = {
   files: [] as FileEntry[],
   scenes: [] as OpenScene[],
   current: null as OpenScene | null,
-  tab: '2d' as '2d' | 'script',
+  tab: '2d' as Tab,
+  /** A file shown in the inspector (asset preview) instead of the selected node; '' = show the node. */
+  inspectFile: '',
   scripts: [] as OpenScript[],
   currentScript: null as OpenScript | null,
   logs: [] as { level: string; msg: string; at: Date }[],
 };
+
+export type Tab = '2d' | '3d' | 'script' | 'graph';
+
+export function setTab(t: Tab) {
+  if (ed.tab === t) return;
+  ed.tab = t;
+  emit('tab');
+}
+
+/** The view a scene opens in: 3D when its root is 3D, or it has 3D nodes and no 2D world (a HUD in a CanvasLayer is fine). */
+function viewFor(root: Node): Tab {
+  if (root instanceof Node3D) return '3d';
+  let world2d = false;
+  root.walk((n) => { if (n instanceof CanvasLayer) return false; if (n instanceof Node2D) world2d = true; });
+  return has3D(root) && !world2d ? '3d' : '2d';
+}
+
+export function inspectFile(path: string) {
+  ed.inspectFile = path;
+  emit('inspect');
+}
 
 export function log(msg: string, level: 'info' | 'error' | 'ok' = 'info') {
   ed.logs.push({ level, msg, at: new Date() });
@@ -74,19 +98,19 @@ export function newScene(rootType = 'Node2D'): OpenScene {
   const s: OpenScene = { path: '', root: createNode(rootType), selected: null, dirty: true, undo: [], redo: [], view: null };
   s.selected = s.root;
   ed.scenes.push(s);
+  if (ed.tab !== 'script') setTab(viewFor(s.root));
   setCurrent(s);
   return s;
 }
 
 export async function openScene(path: string): Promise<void> {
   const open = ed.scenes.find((s) => s.path === path);
-  if (open) { ed.tab = '2d'; emit('tab'); return setCurrent(open); }
+  if (open) { setTab(viewFor(open.root)); return setCurrent(open); }
   const { text } = await api('fs/read', { path });
   const root = parseScene(text);
   const s: OpenScene = { path, root, selected: root, dirty: false, undo: [], redo: [], view: null, mtime: ed.files.find((f) => f.path === path)?.mtime };
   ed.scenes.push(s);
-  ed.tab = '2d';
-  emit('tab');
+  setTab(viewFor(root));
   setCurrent(s);
 }
 
@@ -110,7 +134,7 @@ export function closeScene(s: OpenScene) {
   else emit('scenes');
 }
 
-/** Re-read open scenes and scripts that changed on disk (an AI agent or git pull), unless they have unsaved edits. */
+/** Re-read open scenes and scripts that changed on disk (an AI agent in a terminal, git pull), unless they have unsaved edits. */
 export async function reloadChanged(): Promise<void> {
   await refreshFiles();
   const mt = (p: string) => ed.files.find((f) => f.path === p)?.mtime;
@@ -170,6 +194,7 @@ export function redo() {
 export function select(n: Node | null) {
   if (!ed.current) return;
   ed.current.selected = n;
+  if (ed.inspectFile) { ed.inspectFile = ''; emit('inspect'); }
   emit('selection');
 }
 

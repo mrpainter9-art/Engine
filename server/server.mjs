@@ -1,5 +1,5 @@
 // Local editor server: serves the editor, the project's files under /project/, and a small JSON API
-// for files, git and AI agents. It only listens on 127.0.0.1 and only answers same-origin API calls.
+// for files, git and the asset graph. It only listens on 127.0.0.1 and only answers same-origin API calls.
 import http from 'node:http';
 import { exec } from 'node:child_process';
 import fs from 'node:fs';
@@ -7,8 +7,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as fsapi from './fsapi.mjs';
 import * as gitapi from './gitapi.mjs';
-import * as aiapi from './aiapi.mjs';
 import { exportWeb } from './export.mjs';
+import { graph } from './graph.mjs';
 import { resolveInside } from './paths.mjs';
 
 const ENGINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -19,6 +19,7 @@ const PROJECT = path.resolve(arg('project', process.cwd()));
 
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json',
   '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml',
+  '.glb': 'model/gltf-binary', '.gltf': 'model/gltf+json', '.bin': 'application/octet-stream',
   '.wav': 'audio/wav', '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg', '.ttf': 'font/ttf', '.woff2': 'font/woff2', '.md': 'text/markdown; charset=utf-8', '.txt': 'text/plain; charset=utf-8' };
 
 const API = {
@@ -36,9 +37,17 @@ const API = {
   'git/pull': () => gitapi.pull(PROJECT),
   'git/push': () => gitapi.push(PROJECT),
   'git/init': () => gitapi.init(PROJECT),
-  'ai/stop': () => aiapi.stop(),
   'export/web': () => exportWeb(PROJECT),
+  'project/graph': () => graph(PROJECT),
+  'project/agents': () => writeAgents(PROJECT),
 };
+
+/** Puts the engine guide for coding agents (server/project-agents.md) into the project as AGENTS.md, plus CLAUDE.md pointing at it. */
+async function writeAgents(root) {
+  await fsapi.write(root, { path: 'res://AGENTS.md', text: fs.readFileSync(path.join(ENGINE, 'server', 'project-agents.md'), 'utf8') });
+  if (!fs.existsSync(path.join(root, 'CLAUDE.md'))) await fsapi.write(root, { path: 'res://CLAUDE.md', text: '@AGENTS.md\n' });
+  return { ok: true };
+}
 
 const json = (res, code, obj) => { res.writeHead(code, { 'content-type': 'application/json', 'cache-control': 'no-store' }); res.end(JSON.stringify(obj)); };
 
@@ -61,7 +70,6 @@ async function handleApi(req, res, name) {
   if (req.method !== 'POST' || !trusted(req)) return json(res, 403, { error: 'forbidden' });
   try {
     const body = await readBody(req);
-    if (name === 'ai/run') return aiapi.run(PROJECT, body, res);
     const fn = API[name];
     if (!fn) return json(res, 404, { error: 'unknown api ' + name });
     json(res, 200, await fn(body));
