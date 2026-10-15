@@ -43,6 +43,7 @@ export default class {
     if (input.isActionDown('faster')) this.speed = Math.min(this.speed + 60 * dt, 400);
     if (input.isActionDown('slower')) this.speed = Math.max(this.speed - 60 * dt, 0);
     if (input.isActionPressed('skip_time')) this.hour = (this.hour + 2) % 24;
+    if (input.isActionPressed('switch_view')) this.game.changeScene('res://scenes/cabin.scene.json');
 
     this.s = Math.min(this.s + this.speed * dt, S_END);
     this.hour = (this.hour + dt * 24 / DAY_SECONDS) % 24;
@@ -59,6 +60,6 @@ export default class {
     const next = STATIONS.find(([, at]) => at > this.s + 1);
     const hh = Math.floor(this.hour), mm = Math.floor((this.hour % 1) * 60);
     this.info.text = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}  ${Math.round(this.speed * 3.6)} km/h  ` +
-      (next ? `다음 ${next[0]} ${((next[1] - this.s) / 1000).toFixed(1)} km` : '종착 Interlaken Ost');
+      (next ? `다음 ${next[0]} ${((next[1] - this.s) / 1000).toFixed(1)} km` : '종착 Interlaken Ost') + '  (Space 객실 보기)';
   }
 }

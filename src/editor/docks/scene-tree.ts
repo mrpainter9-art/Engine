@@ -1,4 +1,4 @@
-import { Node, Node2D, CanvasLayer, createNode, nodeClass } from '../../engine';
+import { Node, Node2D, Node3D, CanvasLayer, createNode, nodeClass } from '../../engine';
 import { ed, on, select, addNode, deleteNode, duplicateNode, moveNode, renameNode, setProp, newScene, setScript } from '../state';
 import { h, clear, contextMenu } from '../ui';
 import { chooseNodeType } from './add-node';
@@ -34,6 +34,7 @@ export function createSceneDock(): HTMLElement {
   const empty = () => h('div', { class: 'root-picker' },
     h('div', { class: 'muted' }, '루트 노드 만들기:'),
     h('button', { onclick: () => newScene('Node2D') }, '✥ 2D 씬'),
+    h('button', { onclick: () => newScene('Node3D') }, '⬡ 3D 씬'),
     h('button', { onclick: () => newScene('CanvasLayer') }, '▤ 사용자 인터페이스'),
     h('button', { onclick: async () => { const t = await chooseNodeType('루트 노드 고르기'); if (t) newScene(t); } }, '○ 다른 노드'));
 
@@ -48,7 +49,7 @@ export function createSceneDock(): HTMLElement {
       const cls = nodeClass(n.type);
       const hasKids = n.children.length > 0;
       const label = h('span', { class: 'name' }, n.name);
-      const vis = n instanceof Node2D || n instanceof CanvasLayer;
+      const vis = n instanceof Node2D || n instanceof Node3D || n instanceof CanvasLayer;
       const el = h('div', {
         class: 'row' + (s.selected === n ? ' sel' : ''), draggable: n !== s.root, style: { paddingLeft: 4 + depth * 14 + 'px' }, title: n.type,
         onclick: () => select(n),

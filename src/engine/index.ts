@@ -3,6 +3,7 @@ export * from './node';
 export * from './nodes/node2d';
 export * from './nodes/visual';
 export * from './nodes/scene-nodes';
+export * from './nodes/node3d';
 export * from './registry';
 export * from './scene';
 export * from './textures';

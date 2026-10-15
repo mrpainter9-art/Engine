@@ -1,9 +1,10 @@
 import { nodeTypes, parentType, type NodeClass } from '../../engine';
 import { dialog, h, clear } from '../ui';
+import { ed } from '../state';
 
 /** Godot's "Create New Node" dialog: a searchable tree of node types with a description. */
 export async function chooseNodeType(title = '새 노드 만들기'): Promise<string | null> {
-  let chosen = 'Node2D';
+  let chosen = ed.tab === '3d' ? 'MeshInstance3D' : 'Node2D';
   const search = h('input', { type: 'search', placeholder: '검색', class: 'wide' });
   const list = h('div', { class: 'type-tree' });
   const desc = h('div', { class: 'type-desc' });

@@ -1,6 +1,6 @@
 import { clone } from './math';
 
-export type PropType = 'number' | 'int' | 'vec2' | 'color' | 'string' | 'text' | 'bool' | 'texture' | 'enum';
+export type PropType = 'number' | 'int' | 'vec2' | 'vec3' | 'color' | 'string' | 'text' | 'bool' | 'texture' | 'model' | 'enum';
 
 /** One inspector-editable, serialized property. Subclasses list their own; the inspector shows them grouped by class. */
 export interface PropDef {

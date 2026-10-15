@@ -5,7 +5,7 @@ import path from 'node:path';
 import { resolveInside } from '../server/paths.mjs';
 import * as fsapi from '../server/fsapi.mjs';
 import * as git from '../server/gitapi.mjs';
-import { agentCommand, buildPrompt, claudeEvents } from '../server/aiapi.mjs';
+import { graph } from '../server/graph.mjs';
 
 const tmp = () => fs.mkdtemp(path.join(os.tmpdir(), 'engine-test-'));
 
@@ -36,6 +36,37 @@ describe('file api', () => {
   });
 });
 
+describe('asset graph', () => {
+  it('links the example: project → scenes → scripts and assets, scripts → scenes', async () => {
+    const g = await graph(path.resolve('examples/train-window'));
+    const has = (from, to, label) => g.edges.some((e) => e.from === from && e.to === to && (!label || e.label === label));
+    expect(has('res://project.json', 'res://scenes/main.scene.json', '메인 씬')).toBe(true);
+    expect(has('res://scenes/main.scene.json', 'res://scripts/train.js', 'Main · 스크립트')).toBe(true);
+    expect(has('res://scenes/cabin.scene.json', 'res://models/pine.glb', 'Outside/Trees/Pine1 · model')).toBe(true);
+    expect(g.edges.find((e) => e.from === 'res://scripts/train.js' && e.to === 'res://scenes/cabin.scene.json')?.label).toMatch(/행 · changeScene$/);
+    expect(g.nodes.filter((n) => !n.used).map((n) => n.path)).toEqual(['res://project.json']);
+    expect(g.nodes.some((n) => n.path.endsWith('AGENTS.md'))).toBe(false);
+  });
+
+  it('finds unused and missing files and relative imports', async () => {
+    const root = await tmp();
+    await fsapi.write(root, { path: 'res://scripts/a.js', text: "import { b } from './lib/b.js';\nconst img = 'res://art/gone.png';\n" });
+    await fsapi.write(root, { path: 'res://scripts/lib/b.js', text: 'export const b = 1;\n' });
+    await fsapi.write(root, { path: 'res://art/old.png', base64: '' });
+    const g = await graph(root);
+    expect(g.edges).toContainEqual({ from: 'res://scripts/a.js', to: 'res://scripts/lib/b.js', label: '1행 · import' });
+    expect(g.nodes.find((n) => n.path === 'res://art/gone.png')?.kind).toBe('missing');
+    expect(g.nodes.find((n) => n.path === 'res://art/old.png')?.used).toBe(false);
+  });
+});
+
+describe('AI guide for game projects', () => {
+  it('the example ships the same AGENTS.md the editor writes', async () => {
+    const [a, b] = await Promise.all([fs.readFile('server/project-agents.md', 'utf8'), fs.readFile('examples/train-window/AGENTS.md', 'utf8')]);
+    expect(b).toBe(a);
+  });
+});
+
 describe('git api', () => {
   it('inits, shows changes and commits', async () => {
     const root = await tmp();
@@ -49,28 +80,5 @@ describe('git api', () => {
     await git.commit(root, { message: '첫 커밋' });
     expect((await git.status(root)).files).toEqual([]);
     expect((await git.log(root)).commits[0].subject).toBe('첫 커밋');
-  });
-});
-
-describe('ai api', () => {
-  it('starts claude read-only by default and with edits allowed on request', () => {
-    expect(agentCommand('claude', { mode: 'ask' }).args).toContain('plan');
-    expect(agentCommand('claude', { mode: 'edit', resume: true }).args).toEqual(expect.arrayContaining(['acceptEdits', '--continue']));
-    expect(agentCommand('codex', { mode: 'ask' }).args).toContain('read-only');
-  });
-
-  it('puts the engine cheat-sheet and editor state before the request', () => {
-    const p = buildPrompt({ prompt: '구름 추가', context: { scene: 'res://scenes/main.scene.json' } });
-    expect(p).toContain('Node types and their props');
-    expect(p).toContain('Open scene: res://scenes/main.scene.json');
-    expect(p.trim().endsWith('구름 추가')).toBe(true);
-  });
-
-  it('turns claude stream-json into panel events', () => {
-    expect(claudeEvents(JSON.stringify({ type: 'assistant', message: { content: [{ type: 'text', text: '안녕' }, { type: 'tool_use', name: 'Edit', input: { file_path: 'a.js' } }] } })))
-      .toEqual([{ type: 'text', text: '안녕' }, { type: 'tool', text: 'Edit a.js' }]);
-    const [u] = claudeEvents(JSON.stringify({ type: 'result', duration_ms: 2000, usage: { input_tokens: 10, output_tokens: 5 }, total_cost_usd: 0.01 }));
-    expect(u.type).toBe('usage');
-    expect(u.text).toContain('15');
   });
 });

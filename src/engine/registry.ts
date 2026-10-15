@@ -2,6 +2,7 @@ import { Node } from './node';
 import { Node2D } from './nodes/node2d';
 import { Sprite2D, ColorRect, Label } from './nodes/visual';
 import { Parallax2D, Camera2D, CanvasModulate, CanvasLayer } from './nodes/scene-nodes';
+import { Node3D, MeshInstance3D, Sprite3D, Camera3D, DirectionalLight3D, OmniLight3D, WorldEnvironment } from './nodes/node3d';
 
 export type NodeClass = typeof Node;
 
@@ -41,4 +42,5 @@ export function parentType(cls: NodeClass): string | null {
   return p && p.typeName ? p.typeName : null;
 }
 
-for (const c of [Node, Node2D, Sprite2D, ColorRect, Label, Parallax2D, Camera2D, CanvasModulate, CanvasLayer]) registerNode(c as NodeClass);
+for (const c of [Node, Node2D, Sprite2D, ColorRect, Label, Parallax2D, Camera2D, CanvasModulate, CanvasLayer,
+  Node3D, MeshInstance3D, Sprite3D, Camera3D, DirectionalLight3D, OmniLight3D, WorldEnvironment]) registerNode(c as NodeClass);

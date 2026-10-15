@@ -1,5 +1,5 @@
 import './style.css';
-import { ed, on, emit, loadProject, saveScene, closeScene, setCurrent, undo, redo, newScene, openScene, saveProject, reloadChanged, log, deleteNode, duplicateNode } from './state';
+import { ed, on, loadProject, saveScene, closeScene, setCurrent, undo, redo, newScene, openScene, saveProject, reloadChanged, log, deleteNode, duplicateNode, setTab, type Tab } from './state';
 import { api } from './api';
 import { h, clear, dialog, ask, confirmBox, contextMenu, toast, type MenuItem } from './ui';
 import { createViewport, fitView, textures } from './viewport';
@@ -9,7 +9,7 @@ import { createInspector } from './docks/inspector';
 import { createScriptEditor, saveScript } from './script-editor';
 import { createOutputPanel } from './panels/output';
 import { createGitPanel } from './panels/git';
-import { createAiPanel } from './panels/ai';
+import { createGraphView } from './graph-view';
 
 // ---------- scene saving and playing ----------
 
@@ -73,6 +73,15 @@ async function exportWeb() {
   catch (e) { toast((e as Error).message, 'error'); }
 }
 
+/** Writes AGENTS.md (and CLAUDE.md pointing to it) into the project: a short engine guide that Claude Code or Codex read first,
+ * so they don't spend tokens working out how the engine works. */
+async function writeAgentsFile() {
+  const exists = ed.files.some((f) => f.path === 'res://AGENTS.md');
+  if (exists && !(await confirmBox('AI 안내 파일', 'AGENTS.md 가 이미 있어요. 엔진 최신 설명으로 덮어쓸까요?', '덮어쓰기'))) return;
+  try { await api('project/agents'); await reloadChanged(); toast('AGENTS.md 를 만들었어요. 이 폴더에서 Claude Code나 Codex를 열면 먼저 읽어요.'); }
+  catch (e) { toast((e as Error).message, 'error'); }
+}
+
 async function openSceneDialog() {
   const scenes = ed.files.filter((f) => f.path.endsWith('.scene.json'));
   if (!scenes.length) return toast('씬 파일이 없어요.');
@@ -86,6 +95,9 @@ async function closeWithCheck(s = ed.current) {
   if (s.dirty && !(await confirmBox('씬 닫기', `${s.path || '새 씬'} 에 저장 안 한 수정이 있어요. 그래도 닫을까요?`, '닫기'))) return;
   closeScene(s);
 }
+
+/** New scene with a root that fits the view you are in (Node3D in the 3D view, Node2D elsewhere). */
+const newSceneHere = () => newScene(ed.tab === '3d' ? 'Node3D' : 'Node2D');
 
 // ---------- layout ----------
 
@@ -104,7 +116,7 @@ function sceneTabs(): HTMLElement {
         onauxclick: (e: MouseEvent) => { if (e.button === 1) closeWithCheck(s); } },
         (s.path ? s.path.split('/').pop()!.replace('.scene.json', '') : '[새 씬]') + (s.dirty ? '(*)' : ''),
         h('span', { class: 'close', onclick: (e: MouseEvent) => { e.stopPropagation(); closeWithCheck(s); } }, '✕')));
-    bar.append(h('button', { class: 'tab-add', title: '새 씬', onclick: () => newScene() }, '＋'));
+    bar.append(h('button', { class: 'tab-add', title: '새 씬', onclick: () => newSceneHere() }, '＋'));
   };
   on('scenes', render);
   render();
@@ -112,7 +124,7 @@ function sceneTabs(): HTMLElement {
 }
 
 function bottomPanel(): HTMLElement {
-  const panels: [string, () => HTMLElement][] = [['출력', createOutputPanel], ['버전 관리', createGitPanel], ['AI', createAiPanel]];
+  const panels: [string, () => HTMLElement][] = [['출력', createOutputPanel], ['버전 관리', createGitPanel]];
   const made = new Map<string, HTMLElement>();
   const body = h('div', { class: 'bottom-body' });
   const tabs = h('div', { class: 'bottom-tabs' });
@@ -150,14 +162,15 @@ function setupResizers() {
   });
 }
 
+const TABS: [Tab, string][] = [['2d', '2D'], ['3d', '3D'], ['script', '스크립트'], ['graph', '연결']];
+
 function build() {
   const app = document.getElementById('app')!;
-  const tab2d = h('button', { class: 'main-tab', onclick: () => { ed.tab = '2d'; emit('tab'); } }, '2D');
-  const tabScript = h('button', { class: 'main-tab', onclick: () => { ed.tab = 'script'; emit('tab'); } }, '스크립트');
+  const tabButtons = TABS.map(([t, label]) => h('button', { class: 'main-tab', title: t === 'graph' ? '애셋과 코드가 어떻게 이어져 있는지 보기' : '', onclick: () => setTab(t) }, label));
   const projName = h('span', { class: 'proj-name' });
   const menubar = h('div', { class: 'menubar' },
     menuButton('씬', () => [
-      { label: '새 씬', shortcut: 'Ctrl+N', action: () => newScene() },
+      { label: '새 씬', shortcut: 'Ctrl+N', action: newSceneHere },
       { label: '씬 열기…', shortcut: 'Ctrl+O', action: openSceneDialog },
       { label: '씬 저장', shortcut: 'Ctrl+S', action: () => saveCurrent(), disabled: !ed.current },
       { label: '다른 이름으로 저장…', shortcut: 'Ctrl+Shift+S', action: () => saveCurrent(true), disabled: !ed.current },
@@ -171,6 +184,7 @@ function build() {
     menuButton('프로젝트', () => [
       { label: '프로젝트 설정…', action: projectSettings },
       { label: '파일 다시 읽기', action: async () => { textures.invalidate(); await reloadChanged(); } },
+      { label: 'AI 안내 파일 만들기 (AGENTS.md)', action: writeAgentsFile },
       { separator: true, label: '' },
       { label: '웹으로 내보내기', action: exportWeb },
     ]),
@@ -179,27 +193,39 @@ function build() {
         'F5  메인 씬 실행        F6  지금 씬 실행        F8  정지',
         'Ctrl+S  저장            Ctrl+Z / Ctrl+Y  실행 취소 / 다시',
         'Ctrl+A  자식 노드 추가  Ctrl+D  복제          Del  삭제',
-        'F2  이름 바꾸기         화살표  1픽셀 이동 (Shift: 8픽셀)',
-        '뷰포트: 휠 확대, 가운데 버튼이나 Space+끌기로 이동',
-      ].join('\n')), [{ label: '닫기', value: true, primary: true }], { width: 520 }) },
+        'F2  이름 바꾸기',
+        '',
+        '2D: 화살표 1픽셀 이동 (Shift: 8픽셀), 휠 확대, 가운데 버튼이나 Space+끌기로 화면 이동',
+        '3D: Q 고르기  W 이동  E 회전  R 크기  F 고른 노드로 맞추기',
+        '    오른쪽 끌기 회전, 가운데 또는 Shift+오른쪽 끌기 이동, 휠 확대',
+      ].join('\n')), [{ label: '닫기', value: true, primary: true }], { width: 560 }) },
     ]),
     projName,
-    h('div', { class: 'main-tabs' }, tab2d, tabScript),
+    h('div', { class: 'main-tabs' }, tabButtons),
     h('div', { class: 'play' },
       h('button', { class: 'play-btn', title: '메인 씬 실행 (F5)', onclick: () => play(false) }, '▶'),
       h('button', { class: 'play-btn', title: '지금 씬 실행 (F6)', onclick: () => play(true) }, '▷'),
       h('button', { class: 'play-btn', title: '정지 (F8)', onclick: stop }, '■')));
-  const center2d = h('div', { class: 'center-2d' }, sceneTabs(), createViewport());
+  const center2d = h('div', { class: 'center-view' }, sceneTabs(), createViewport());
+  const holder3d = h('div', { class: 'center-view' }, sceneTabs());
   const centerScript = createScriptEditor();
+  const centerGraph = createGraphView();
+  const views: Record<Tab, HTMLElement> = { '2d': center2d, '3d': holder3d, script: centerScript, graph: centerGraph };
   const left = h('div', { class: 'left' }, createSceneDock(), h('div', { class: 'resizer-v', 'data-var': '--left-split' }), createFileSystemDock());
   app.append(menubar,
     h('div', { class: 'main' }, left, h('div', { class: 'resizer-w', 'data-var': '--left-w' }),
-      h('div', { class: 'center' }, center2d, centerScript),
+      h('div', { class: 'center' }, center2d, holder3d, centerScript, centerGraph),
       h('div', { class: 'resizer-w', 'data-var': '--right-w' }), h('div', { class: 'right' }, createInspector())),
     bottomPanel());
+  let loading3d = false;
   const syncTab = () => {
-    center2d.hidden = ed.tab !== '2d'; centerScript.hidden = ed.tab !== 'script';
-    tab2d.classList.toggle('sel', ed.tab === '2d'); tabScript.classList.toggle('sel', ed.tab === 'script');
+    for (const [t, el] of Object.entries(views)) el.hidden = ed.tab !== t;
+    tabButtons.forEach((b, i) => b.classList.toggle('sel', TABS[i][0] === ed.tab));
+    // the 3D view brings in three.js, so it loads the first time it is needed
+    if (ed.tab === '3d' && !loading3d) {
+      loading3d = true;
+      import('./viewport3d').then((m) => holder3d.append(m.createViewport3D())).catch((e) => log('3D 화면을 열지 못했어요: ' + e.message, 'error'));
+    }
   };
   on('tab', syncTab); syncTab();
   on('project', () => { projName.textContent = ed.project.name || ed.projectName; });
@@ -218,15 +244,15 @@ function shortcuts() {
     else if (typing) return;
     else if (mod && k === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); }
     else if (mod && k === 'y') { e.preventDefault(); redo(); }
-    else if (mod && k === 'n') { e.preventDefault(); newScene(); }
+    else if (mod && k === 'n') { e.preventDefault(); newSceneHere(); }
     else if (mod && k === 'o') { e.preventDefault(); openSceneDialog(); }
     else if (mod && k === 'w') { e.preventDefault(); closeWithCheck(); }
-    else if (mod && k === 'a' && ed.tab === '2d') { e.preventDefault(); addChildNode(); }
+    else if (mod && k === 'a' && (ed.tab === '2d' || ed.tab === '3d')) { e.preventDefault(); addChildNode(); }
     else if (mod && k === 'd' && ed.current?.selected) { e.preventDefault(); duplicateNode(ed.current.selected); }
-    else if (e.key === 'Delete' && ed.tab === '2d' && ed.current?.selected && ed.current.selected !== ed.current.root) deleteNode(ed.current.selected);
+    else if (e.key === 'Delete' && (ed.tab === '2d' || ed.tab === '3d') && ed.current?.selected && ed.current.selected !== ed.current.root) deleteNode(ed.current.selected);
   });
   addEventListener('beforeunload', (e) => { if (ed.scenes.some((s) => s.dirty) || ed.scripts.some((s) => s.text !== s.saved)) e.preventDefault(); });
-  // pick up changes made outside the editor (an AI agent, git, another program) when coming back to the window
+  // pick up changes made outside the editor (Claude Code or Codex in a terminal, git, another program) when coming back to the window
   addEventListener('focus', () => reloadChanged().catch(() => {}));
 }
 
