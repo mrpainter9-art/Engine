@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Game</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  #wrap { position: fixed; inset: 0; display: grid; place-items: center; }
+  canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+  #err { position: fixed; left: 8px; bottom: 8px; right: 8px; color: #ffb4a8; font: 12px monospace; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="game"></canvas></div>
+<div id="err"></div>
+<script type="module" src="/src/player/play.ts"></script>
+</body>
+</html>
