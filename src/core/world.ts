@@ -48,6 +48,8 @@ export interface Behavior {
   choices?: Record<string, string[]>;
   setup?(obj: GameObject, params: Params, state: Record<string, any>, game: Game): void;
   update?(obj: GameObject, params: Params, state: Record<string, any>, dt: number, game: Game): void;
+  /** Draw something extra for the object (in map pixels), e.g. text. Runs while editing too. */
+  draw?(ctx: CanvasRenderingContext2D, obj: GameObject, params: Params, state: Record<string, any>, game: Game): void;
 }
 
 interface BlockInstance {
@@ -210,19 +212,24 @@ export class World implements Module {
     }
   }
 
-  draw(ctx: CanvasRenderingContext2D, { assets }: Game): void {
+  draw(ctx: CanvasRenderingContext2D, game: Game): void {
     for (const o of this.objects) {
-      if (!o.image) continue; // empty node: nothing to draw
-      const look = this.look(o);
-      const img = assets.image(look.image);
-      const frames = look.frames ?? 1;
-      if (img && frames === 1 && (o.w > img.width || o.h > img.height)) {
-        assets.drawTiled(ctx, look.image, o.x, o.y, o.w, o.h);
-        continue;
-      }
-      const frame = Math.floor(o.animTime * (look.fps ?? 8));
-      assets.draw(ctx, look.image, o.x, o.y, { flipX: o.flipX, frames, frame });
+      this.drawImage(ctx, o, game);
+      for (const b of o.blocks) b.behavior.draw?.(ctx, o, b.params, b.state, game);
     }
+  }
+
+  private drawImage(ctx: CanvasRenderingContext2D, o: GameObject, { assets }: Game): void {
+    if (!o.image) return; // empty node or text: no picture
+    const look = this.look(o);
+    const img = assets.image(look.image);
+    const frames = look.frames ?? 1;
+    if (img && frames === 1 && (o.w > img.width || o.h > img.height)) {
+      assets.drawTiled(ctx, look.image, o.x, o.y, o.w, o.h);
+      return;
+    }
+    const frame = Math.floor(o.animTime * (look.fps ?? 8));
+    assets.draw(ctx, look.image, o.x, o.y, { flipX: o.flipX, frames, frame });
   }
 
   /** The picture to show now: the playing animation if the kind has it, otherwise the kind's own picture. */

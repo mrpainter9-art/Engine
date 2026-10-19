@@ -208,6 +208,8 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
   /** A new scene line for a kind, centered on a map point. */
   function spot(kind: string, p: { x: number; y: number }): Placement {
     const { w, h: ht } = size(kind);
+    // Text fixed on the screen is placed in screen pixels, not map pixels.
+    if (kinds[kind]?.blocks.some((b) => b.type === 'text' && b.screen !== false)) p = { x: p.x - game.camera.x, y: p.y - game.camera.y };
     return { kind, x: snap(p.x - w / 2), y: snap(p.y - ht / 2) };
   }
 
@@ -454,7 +456,7 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
       // Empty nodes have no picture: show them as a small diamond.
       ctx.strokeStyle = 'rgba(255,255,255,0.8)';
       for (const o of g.world.objects) {
-        if (o.image) continue;
+        if (o.image || o.blocks.some((b) => b.behavior.draw)) continue;
         const cx = Math.round(o.x + o.w / 2) + 0.5;
         const cy = Math.round(o.y + o.h / 2) + 0.5;
         ctx.beginPath();
@@ -472,7 +474,7 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
       // Where a new object would go.
       const ghost = ed.dragging?.type === 'image' ? { image: ed.dragging.name, frames: 1 }
         : kinds[ed.dragging?.name ?? ed.palette ?? ''];
-      if (ghost && mouse) {
+      if (ghost?.image && mouse) {
         const img = g.assets.image(ghost.image);
         const w = img ? Math.floor(img.width / (ghost.frames ?? 1)) : 16;
         const ht = img?.height ?? 16;

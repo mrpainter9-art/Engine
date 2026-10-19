@@ -25,7 +25,8 @@ export function renderHierarchy(ed: Ed, root: HTMLElement): void {
       else folded.add(p);
       ed.render();
     };
-    const icon = kind ? thumbnail(ed.game.assets.image(kind.image), kind.frames, 18) : h('span', { class: 'ed-empty-icon', textContent: '◇' });
+    const icon = kind?.image ? thumbnail(ed.game.assets.image(kind.image), kind.frames, 18)
+      : h('span', { class: 'ed-empty-icon', textContent: kind?.blocks.some((b) => b.type === 'text') ? 'T' : '◇' });
     const row = h('div', {
       class: `ed-node ${ed.selected === p ? 'ed-on' : ''}`,
       draggable: true,

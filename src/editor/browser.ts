@@ -56,7 +56,7 @@ function collect(ed: Ed): Item[] {
     const i = path.lastIndexOf('/');
     items.push({ type, name, folder: i < 0 ? '' : path.slice(0, i), path, info, thumb });
   };
-  for (const [name, k] of Object.entries(kinds)) add('prefab', name, `prefabs/${name}`, `컴포넌트 ${k.blocks.length}개`, k);
+  for (const [name, k] of Object.entries(kinds)) add('prefab', name, `prefabs/${name}`, `컴포넌트 ${k.blocks.length}개`, k.image ? k : undefined);
   for (const name of game.assets.names()) {
     const img = game.assets.image(name);
     add('image', name.split('/').pop()!, `assets/${name}`, img ? `${img.width}×${img.height}` : '', { image: name });

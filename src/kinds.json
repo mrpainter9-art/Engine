@@ -60,5 +60,9 @@
   "tree": {
     "image": "tree",
     "blocks": []
+  },
+  "text": {
+    "image": "",
+    "blocks": [{ "type": "text" }]
   }
 }

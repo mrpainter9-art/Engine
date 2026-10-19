@@ -1,4 +1,3 @@
-import type { SceneText } from '../core/scenes';
 import type { Behavior, KindDef, Look, Params, Placement } from '../core/world';
 import { renderAsset, typeHeader } from './assetview';
 import { NAME_RULE, type Ed } from './state';
@@ -12,7 +11,10 @@ const PARAM_NAMES: Record<string, string> = {
   speed: '빠르기', distance: '거리', edges: '발판 끝에서 돌기', height: '높이', target: '대상 프리팹', range: '이 거리 안이면',
   by: '누가 닿으면', score: '점수', sound: '소리', strength: '힘', maxFall: '가장 빠른 낙하', power: '점프 힘',
   key: '키 (동작 이름)', axes: '방향', bottom: '아래도 막기', idle: '서 있을 때', walk: '걸을 때', air: '공중에서',
+  text: '내용', align: '정렬', color: '색', scale: '크기 (배)', screen: '화면에 고정',
 };
+
+const CHOICE_NAMES: Record<string, string> = { left: '왼쪽', center: '가운데', right: '오른쪽', both: '네 방향', horizontal: '좌우만' };
 
 /** Fill a panel: clear it and let one of the tab builders below add its rows. */
 export function renderPanel(ed: Ed, root: HTMLElement, which: 'inspector' | 'scene'): void {
@@ -53,8 +55,9 @@ function objectTab(ed: Ed, body: HTMLElement): void {
     const values = kindValues(ed, kind);
     if (Object.keys(values).length) {
       body.append(h('h3', { textContent: '이 오브젝트만 바꿀 값' }), h('p', { class: 'ed-note', textContent: '비워 두면 프리팹에 정한 값(흐린 글자)을 따라가요.' }));
+      const choices = Object.assign({}, ...kind.blocks.map((b) => findBehavior(ed, b.type)?.choices)) as Record<string, string[]>;
       for (const [key, kindValue] of Object.entries(values)) {
-        body.append(row(PARAM_NAMES[key] ?? key, overrideInput(ed, p, key, kindValue), key));
+        body.append(row(PARAM_NAMES[key] ?? key, overrideInput(ed, p, key, kindValue, choices[key]), key));
       }
     }
   }
@@ -70,9 +73,23 @@ function kindValues(ed: Ed, kind: KindDef): Params {
   return values;
 }
 
-function overrideInput(ed: Ed, p: Placement, key: string, kindValue: unknown): HTMLElement {
+function overrideInput(ed: Ed, p: Placement, key: string, kindValue: unknown, choices?: string[]): HTMLElement {
   const set = (v: unknown) => ed.change(() => setOrDelete(p, key, v));
   const value = p[key];
+  if (choices) {
+    return selectInput([['', `프리팹대로 (${CHOICE_NAMES[String(kindValue)] ?? kindValue})`], ...choices.map((c): [string, string] => [c, CHOICE_NAMES[c] ?? c])],
+      value === undefined ? '' : String(value), (v) => set(v || undefined));
+  }
+  if (key === 'color') {
+    return h('span', { style: 'display:flex;gap:6px;flex:1' },
+      colorInput(String(value ?? kindValue), set),
+      h('button', { textContent: '프리팹대로', disabled: value === undefined, onclick: () => set(undefined) }));
+  }
+  if (key === 'text') {
+    const area = h('textarea', { value: String(value ?? ''), rows: 2, placeholder: String(kindValue) });
+    area.addEventListener('change', () => set(area.value === '' ? undefined : area.value));
+    return area;
+  }
   if (typeof kindValue === 'boolean') {
     return selectInput([['', `프리팹대로 (${kindValue ? '켬' : '끔'})`], ['true', '켬'], ['false', '끔']], value === undefined ? '' : String(value),
       (v) => set(v === '' ? undefined : v === 'true'));
@@ -188,6 +205,7 @@ function paramInput(ed: Ed, kind: KindDef, behavior: Behavior | undefined, key: 
   const str = String(value ?? '');
   const choices = behavior?.choices?.[key];
   if (choices) return selectInput(choices.map((c) => [c, c]), str, set);
+  if (key === 'color') return colorInput(str || '#ffffff', set);
   if (key === 'sound') return selectInput([['', '(없음)'], ...ed.game.sound.names().map((n): [string, string] => [n, n])], str, set);
   if (key === 'target' || key === 'by') return selectInput(Object.keys(ed.kinds).map((n) => [n, n]), str, set);
   if (['idle', 'walk', 'air'].includes(key)) {
@@ -215,7 +233,7 @@ function renameKind(ed: Ed, from: string, to: string): void {
   ed.render();
 }
 
-// ---- 장면: map size, colors, music, rules, texts ----
+// ---- 장면: map size, colors, music, rules ----
 
 function sceneTab(ed: Ed, body: HTMLElement): void {
   const { game } = ed;
@@ -245,25 +263,7 @@ function sceneTab(ed: Ed, body: HTMLElement): void {
       h('p', { class: 'ed-note', textContent: '문구와 소리는 src/modules/rules/rules.json의 값을 따라가요.' }),
     );
   }
-  body.append(h('h3', { textContent: '화면 글자' }));
-  (s.texts ?? []).forEach((t, i) => body.append(textCard(ed, t, i)));
-  body.append(h('button', { textContent: '+ 글자 추가', onclick: () => ed.change(() => (s.texts = [...(s.texts ?? []), { text: '글자', x: game.width / 2, y: 20, align: 'center' }])) }));
-}
-
-function textCard(ed: Ed, t: SceneText, i: number): HTMLElement {
-  const area = h('textarea', { value: t.text, rows: 2 });
-  area.addEventListener('change', () => ed.change(() => (t.text = area.value)));
-  return h('div', { class: 'ed-card' },
-    h('div', { class: 'ed-card-head' }, h('b', { textContent: `글자 ${i + 1}` }),
-      h('button', { textContent: '✕', onclick: () => ed.change(() => ed.game.scene.texts!.splice(i, 1)) })),
-    row('내용', area, '{score} 점수, {best-stage1} 최고 기록처럼 숫자를 넣을 수 있어요'),
-    row('x, y', h('span', { style: 'display:flex;gap:4px;flex:1' },
-      numberInput(t.x, (v) => ed.change(() => (t.x = v ?? 0))), numberInput(t.y, (v) => ed.change(() => (t.y = v ?? 0))))),
-    row('정렬', selectInput([['left', '왼쪽'], ['center', '가운데'], ['right', '오른쪽']], t.align ?? 'left', (v) => ed.change(() => (t.align = v as SceneText['align'])))),
-    row('색, 크기', h('span', { style: 'display:flex;gap:4px;flex:1' },
-      colorInput(t.color ?? '#ffffff', (v) => ed.change(() => (t.color = v))),
-      selectInput([['1', '보통'], ['2', '2배'], ['3', '3배']], String(t.scale ?? 1), (v) => ed.change(() => setOrDelete(t, 'scale', v === '1' ? undefined : Number(v)))))),
-  );
+  body.append(h('p', { class: 'ed-note', textContent: '화면 글자는 오브젝트예요. 프로젝트 패널의 text 프리팹을 장면 보기로 끌어 놓고, 인스펙터에서 내용을 바꿔요.' }));
 }
 
 // ---- helpers ----
