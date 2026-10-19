@@ -1,4 +1,5 @@
 import type { Assets } from './assets';
+import type { Sound } from './sound';
 import type { Camera } from './camera';
 import type { Input } from './input';
 import type { World } from './world';
@@ -9,6 +10,7 @@ export interface Game {
   height: number;
   input: Input;
   assets: Assets;
+  sound: Sound;
   world: World;
   camera: Camera;
   /** Numbers the game keeps track of, e.g. { score: 3 }. Blocks add to them, rules read them. */

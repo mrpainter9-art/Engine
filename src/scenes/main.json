@@ -1,5 +1,6 @@
 {
   "size": { "width": 960, "height": 180 },
+  "music": "song",
   "objects": [
     { "kind": "tree", "x": 40, "y": 144 },
     { "kind": "tree", "x": 230, "y": 144 },

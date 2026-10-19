@@ -7,7 +7,7 @@
     },
     "blocks": [
       { "type": "move-with-keys", "speed": 80, "axes": "horizontal" },
-      { "type": "jump", "power": 240 },
+      { "type": "jump", "power": 240, "sound": "jump" },
       { "type": "gravity", "strength": 600 },
       { "type": "face-movement" },
       { "type": "animate-by-movement", "idle": "", "walk": "walk", "air": "jump" },
@@ -22,7 +22,7 @@
     "fps": 8,
     "blocks": [
       { "type": "bob", "height": 2, "speed": 3 },
-      { "type": "vanish-on-touch", "by": "player", "score": 1 }
+      { "type": "vanish-on-touch", "by": "player", "score": 1, "sound": "coin" }
     ]
   },
   "slime": {
@@ -33,7 +33,7 @@
       { "type": "patrol", "speed": 30, "distance": 0, "edges": true },
       { "type": "gravity" },
       { "type": "face-movement" },
-      { "type": "send-back-on-touch", "target": "player" }
+      { "type": "send-back-on-touch", "target": "player", "sound": "hurt" }
     ]
   },
   "ghost": {
@@ -42,7 +42,7 @@
       { "type": "chase", "target": "player", "speed": 18, "range": 90 },
       { "type": "bob", "height": 1, "speed": 4 },
       { "type": "face-movement" },
-      { "type": "send-back-on-touch", "target": "player" }
+      { "type": "send-back-on-touch", "target": "player", "sound": "hurt" }
     ]
   },
   "ground": {

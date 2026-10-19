@@ -3,6 +3,7 @@ import { Camera } from './core/camera';
 import { Engine } from './core/engine';
 import { Input } from './core/input';
 import { setupScreen, type ScreenSettings } from './core/screen';
+import { Sound } from './core/sound';
 import { World, type KindDef, type Placement } from './core/world';
 import { animateByMovement } from './behaviors/animate-by-movement';
 import { bob } from './behaviors/bob';
@@ -28,7 +29,8 @@ import settings from './settings.json';
 const canvas = document.getElementById('screen') as HTMLCanvasElement;
 const ctx = setupScreen(canvas, settings as ScreenSettings);
 const assets = new Assets();
-await assets.load((p) => drawLoading(ctx, p));
+const sound = new Sound(settings);
+await Promise.all([assets.load((p) => drawLoading(ctx, p)), sound.load()]);
 
 // Behavior blocks that kinds.json can use. A new block = one file in behaviors/ + one line here.
 const world = new World(kinds as Record<string, KindDef>)
@@ -52,7 +54,9 @@ const world = new World(kinds as Record<string, KindDef>)
 const size = scene.size ?? { width: canvas.width, height: canvas.height };
 const camera = new Camera(canvas.width, canvas.height, size.width, size.height);
 
-const game = { width: canvas.width, height: canvas.height, input: new Input(controls, canvas), assets, world, camera, vars: {}, paused: false };
+const game = { width: canvas.width, height: canvas.height, input: new Input(controls, canvas), assets, sound, world, camera, vars: {}, paused: false };
+
+sound.music(scene.music ?? '');
 
 // Register modules here. Removing a feature = removing its line. Earlier modules draw first (behind).
 new Engine(ctx, game)

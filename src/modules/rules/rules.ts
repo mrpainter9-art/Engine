@@ -38,7 +38,10 @@ export function createRules(): Module {
       if (data.timeLimit > 0) timeLeft = Math.max(0, timeLeft - dt);
       if (goal > 0 && game.world.find(data.collect).length === 0) status = 'won';
       else if (data.timeLimit > 0 && timeLeft === 0) status = 'lost';
-      if (status !== 'playing') game.paused = true;
+      if (status !== 'playing') {
+        game.paused = true;
+        game.sound.play(status === 'won' ? data.winSound : data.loseSound);
+      }
     },
     draw(ctx, game) {
       drawText(ctx, fill(data.hud, game), 4, 3);
