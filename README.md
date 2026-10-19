@@ -19,3 +19,5 @@ GitHub Desktop 위쪽의 **Fetch origin** → **Pull origin**을 누르면 끝�
 아직 합치지 않은 PR을 미리 보고 싶으면, 위쪽 **Current branch**에서 `claude/...`로 시작하는 가지를 고르고 `start.bat`을 누르면 돼요.
 
 이전 버전(에디터 포함 첫 시도)은 git 기록의 커밋 `0fb485f`에 그대로 남아 있어요.
+
+글꼴: [갈무리](https://galmuri.quiple.dev) (Lee Minseo, SIL Open Font License 1.1)

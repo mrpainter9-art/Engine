@@ -14,6 +14,7 @@ import { sendBackOnTouch } from './behaviors/send-back-on-touch';
 import { stayInWorld } from './behaviors/stay-in-world';
 import { vanishOnTouch } from './behaviors/vanish-on-touch';
 import { createGround } from './modules/ground/ground';
+import { createRules } from './modules/rules/rules';
 import controls from './controls.json';
 import kinds from './kinds.json';
 import scene from './scenes/main.json';
@@ -41,10 +42,11 @@ const world = new World(kinds as Record<string, KindDef>)
 const size = scene.size ?? { width: canvas.width, height: canvas.height };
 const camera = new Camera(canvas.width, canvas.height, size.width, size.height);
 
-const game = { width: canvas.width, height: canvas.height, input: new Input(controls, canvas), assets, world, camera };
+const game = { width: canvas.width, height: canvas.height, input: new Input(controls, canvas), assets, world, camera, vars: {}, paused: false };
 
 // Register modules here. Removing a feature = removing its line. Earlier modules draw first (behind).
 new Engine(ctx, game)
   .add(createGround())
   .add(world)
+  .add(createRules())
   .start();

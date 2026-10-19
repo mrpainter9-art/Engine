@@ -11,6 +11,10 @@ export interface Game {
   assets: Assets;
   world: World;
   camera: Camera;
+  /** Numbers the game keeps track of, e.g. { score: 3 }. Blocks add to them, rules read them. */
+  vars: Record<string, number>;
+  /** While true, objects stop moving (e.g. on the clear or game over screen). */
+  paused: boolean;
 }
 
 // A module is one feature of the engine. It can hook into three moments:

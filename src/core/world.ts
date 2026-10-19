@@ -52,7 +52,7 @@ export class World implements Module {
   name = 'world';
   objects: GameObject[] = [];
   private behaviors = new Map<string, Behavior>();
-  private pending: Placement[] = [];
+  private scene: Placement[] = [];
   private game!: Game;
 
   constructor(private kinds: Record<string, KindDef>) {}
@@ -64,7 +64,7 @@ export class World implements Module {
 
   /** Objects to create when the game starts, usually from a scene file. */
   load(placements: Placement[]): this {
-    this.pending.push(...placements);
+    this.scene.push(...placements);
     return this;
   }
 
@@ -113,11 +113,21 @@ export class World implements Module {
 
   init(game: Game): void {
     this.game = game;
-    for (const p of this.pending) this.spawn(p);
-    this.pending = [];
+    this.start();
+  }
+
+  /** Put every object back the way the scene file says (used to play again). */
+  restart(): void {
+    this.objects = [];
+    this.start();
+  }
+
+  private start(): void {
+    for (const p of this.scene) this.spawn(p);
   }
 
   update(dt: number, game: Game): void {
+    if (game.paused) return;
     // Copy the list so objects can be added or removed while we go through it.
     for (const obj of [...this.objects]) {
       for (const b of obj.blocks) b.behavior.update?.(obj, b.params, b.state, dt, game);

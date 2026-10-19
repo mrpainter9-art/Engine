@@ -12,7 +12,7 @@
     "image": "coin",
     "blocks": [
       { "type": "bob", "height": 2, "speed": 3 },
-      { "type": "vanish-on-touch", "by": "player" }
+      { "type": "vanish-on-touch", "by": "player", "score": 1 }
     ]
   },
   "slime": {

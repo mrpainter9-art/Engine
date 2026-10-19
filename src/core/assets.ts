@@ -1,3 +1,4 @@
+import { loadFont } from './text';
 import { warn } from './warn';
 
 // Images: every picture inside the assets/ folder is found automatically and can be used by
@@ -21,8 +22,9 @@ export class Assets {
     const entries = Object.entries(files);
     let done = 0;
     onProgress(entries.length ? 0 : 1);
-    await Promise.all(
-      entries.map(async ([path, url]) => {
+    await Promise.all([
+      loadFont().catch(() => warn('글꼴을 불러오지 못했어요: assets/fonts/Galmuri9.woff2')),
+      ...entries.map(async ([path, url]) => {
         const img = new Image();
         img.src = url;
         try {
@@ -33,7 +35,7 @@ export class Assets {
         }
         onProgress(++done / entries.length);
       }),
-    );
+    ]);
   }
 
   image(name: string): HTMLImageElement | null {
