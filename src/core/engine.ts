@@ -1,4 +1,4 @@
-import type { Module } from './module';
+import type { Game, Module } from './module';
 
 // Longest frame we accept. If the tab was hidden for a while, we don't want
 // everything to jump forward by several seconds at once.
@@ -9,7 +9,10 @@ export class Engine {
   private modules: Module[] = [];
   private lastTime = 0;
 
-  constructor(private ctx: CanvasRenderingContext2D) {}
+  constructor(
+    private ctx: CanvasRenderingContext2D,
+    private game: Game,
+  ) {}
 
   add(module: Module): this {
     this.modules.push(module);
@@ -17,7 +20,7 @@ export class Engine {
   }
 
   start(): void {
-    for (const m of this.modules) m.init?.();
+    for (const m of this.modules) m.init?.(this.game);
     requestAnimationFrame((t) => {
       this.lastTime = t;
       requestAnimationFrame(this.frame);
@@ -29,11 +32,11 @@ export class Engine {
     const dt = Math.min((time - this.lastTime) / 1000, MAX_DT);
     this.lastTime = time;
 
-    for (const m of this.modules) m.update?.(dt);
+    for (const m of this.modules) m.update?.(dt, this.game);
+    this.game.input.endFrame();
 
-    const { canvas } = this.ctx;
-    this.ctx.clearRect(0, 0, canvas.width, canvas.height);
-    for (const m of this.modules) m.draw?.(this.ctx);
+    this.ctx.clearRect(0, 0, this.game.width, this.game.height);
+    for (const m of this.modules) m.draw?.(this.ctx, this.game);
 
     requestAnimationFrame(this.frame);
   };
