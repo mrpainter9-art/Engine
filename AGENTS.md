@@ -22,6 +22,7 @@ The owner is a game designer with no coding background who wants to learn how an
 - Tiny core: runs the loop and registers modules, nothing else.
 - One feature = one folder = one module. Removing a feature = removing its registration line.
 - Modules do not import each other; they talk through the core.
+- No target game and no copying another engine's design (the old train game and Godot are not references).
 - Tunable values (routes, speeds, colors) live in data files (JSON), not code.
 - Keep files small and single-purpose; no new dependencies without need.
 
