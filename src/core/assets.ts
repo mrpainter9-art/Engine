@@ -1,3 +1,5 @@
+import { warn } from './warn';
+
 // Images: every picture inside the assets/ folder is found automatically and can be used by
 // its file name without the extension ("assets/player.png" -> "player", "assets/ui/heart.png" -> "ui/heart").
 const files = import.meta.glob('/assets/**/*.{png,jpg,jpeg,gif,webp}', {
@@ -60,19 +62,10 @@ export class Assets {
     }
   }
 
-  // Tell the person making the game, in plain words, which picture is missing.
   private reportMissing(name: string): void {
     if (this.missing.has(name)) return;
     this.missing.add(name);
-    let bar = document.getElementById('asset-warning');
-    if (!bar) {
-      bar = document.createElement('div');
-      bar.id = 'asset-warning';
-      bar.style.cssText =
-        'position:fixed;left:0;right:0;top:0;padding:8px 12px;background:#b3261e;color:#fff;font:14px sans-serif';
-      document.body.appendChild(bar);
-    }
-    bar.textContent = `그림을 못 찾았어요: ${[...this.missing].join(', ')} (assets 폴더에 같은 이름의 그림이 있는지 확인해 주세요)`;
+    warn(`그림을 못 찾았어요: ${name} (assets 폴더에 같은 이름의 그림이 있는지 확인해 주세요)`);
   }
 }
 

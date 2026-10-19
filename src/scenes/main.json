@@ -7,6 +7,7 @@
     { "kind": "coin", "x": 270, "y": 40 },
     { "kind": "slime", "x": 140, "y": 148 },
     { "kind": "slime", "x": 200, "y": 90, "distance": 90, "speed": 50 },
+    { "kind": "ghost", "x": 280, "y": 20 },
     { "kind": "player", "x": 20, "y": 148 }
   ]
 }
