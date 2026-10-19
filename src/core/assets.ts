@@ -11,6 +11,9 @@ const files = import.meta.glob('/assets/**/*.{png,jpg,jpeg,gif,webp}', {
 
 export interface DrawOptions {
   flipX?: boolean; // mirror left-right (e.g. a character facing the other way)
+  /** For animation strips: the picture is `frames` same-size pictures side by side; draw number `frame` (from 0). */
+  frames?: number;
+  frame?: number;
 }
 
 export class Assets {
@@ -53,14 +56,17 @@ export class Assets {
       ctx.fillRect(x, y, 16, 16);
       return;
     }
+    const frames = Math.max(1, opt.frames ?? 1);
+    const w = Math.floor(img.width / frames);
+    const sx = ((opt.frame ?? 0) % frames) * w;
     if (opt.flipX) {
       ctx.save();
-      ctx.translate(x + img.width, y);
+      ctx.translate(x + w, y);
       ctx.scale(-1, 1);
-      ctx.drawImage(img, 0, 0);
+      ctx.drawImage(img, sx, 0, w, img.height, 0, 0, w, img.height);
       ctx.restore();
     } else {
-      ctx.drawImage(img, x, y);
+      ctx.drawImage(img, sx, 0, w, img.height, x, y, w, img.height);
     }
   }
 

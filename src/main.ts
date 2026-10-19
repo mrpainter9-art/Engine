@@ -4,6 +4,7 @@ import { Engine } from './core/engine';
 import { Input } from './core/input';
 import { setupScreen, type ScreenSettings } from './core/screen';
 import { World, type KindDef, type Placement } from './core/world';
+import { animateByMovement } from './behaviors/animate-by-movement';
 import { bob } from './behaviors/bob';
 import { cameraFollow } from './behaviors/camera-follow';
 import { chase } from './behaviors/chase';
@@ -44,6 +45,7 @@ const world = new World(kinds as Record<string, KindDef>)
   .addBehavior(gravity)
   .addBehavior(jump)
   .addBehavior(respawnOnFall)
+  .addBehavior(animateByMovement)
   .load(scene.objects as Placement[]);
 
 // The scene decides how big the world is; without a size it is one screen.

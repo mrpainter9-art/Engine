@@ -1,25 +1,34 @@
 {
   "player": {
     "image": "player",
+    "animations": {
+      "walk": { "image": "player-walk", "frames": 4, "fps": 10 },
+      "jump": { "image": "player-jump" }
+    },
     "blocks": [
       { "type": "move-with-keys", "speed": 80, "axes": "horizontal" },
       { "type": "jump", "power": 240 },
       { "type": "gravity", "strength": 600 },
       { "type": "face-movement" },
+      { "type": "animate-by-movement", "idle": "", "walk": "walk", "air": "jump" },
       { "type": "stay-in-world", "bottom": false },
       { "type": "respawn-on-fall" },
       { "type": "camera-follow", "speed": 5 }
     ]
   },
   "coin": {
-    "image": "coin",
+    "image": "coin-spin",
+    "frames": 4,
+    "fps": 8,
     "blocks": [
       { "type": "bob", "height": 2, "speed": 3 },
       { "type": "vanish-on-touch", "by": "player", "score": 1 }
     ]
   },
   "slime": {
-    "image": "slime",
+    "image": "slime-move",
+    "frames": 2,
+    "fps": 4,
     "blocks": [
       { "type": "patrol", "speed": 30, "distance": 0, "edges": true },
       { "type": "gravity" },

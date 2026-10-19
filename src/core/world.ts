@@ -13,6 +13,9 @@ export interface GameObject {
   startY: number;
   image: string;
   flipX: boolean;
+  /** Name of the animation playing now (from the kind's "animations"); "" = the kind's own picture. */
+  anim: string;
+  animTime: number;
   /** Speed in pixels per second, used by blocks like gravity and jump. */
   vx: number;
   vy: number;
@@ -40,10 +43,17 @@ interface BlockInstance {
   state: Record<string, any>; // the block's own memory for this object
 }
 
-/** A kind from kinds.json: a picture plus a list of blocks with their values. */
-export interface KindDef {
+/** A picture that may be an animation strip: `frames` pictures side by side, played at `fps` per second. */
+export interface Look {
   image: string;
+  frames?: number;
+  fps?: number;
+}
+
+/** A kind from kinds.json: a picture plus a list of blocks with their values, and optional named animations. */
+export interface KindDef extends Look {
   blocks: ({ type: string } & Params)[];
+  animations?: Record<string, Look>;
 }
 
 /** One entry of a scene file: which kind, where, and optional values that override the kind's. */
@@ -83,11 +93,13 @@ export class World implements Module {
     }
     const { kind: name, x, y, ...overrides } = p;
     const img = this.game.assets.image(kind.image);
+    const frameWidth = img ? Math.floor(img.width / (kind.frames ?? 1)) : 16;
     // A scene line may give w/h to make an object bigger than its picture (the picture repeats).
     const obj: GameObject = {
       kind: name, x, y, startX: x, startY: y,
-      w: Number(p.w ?? img?.width ?? 16), h: Number(p.h ?? img?.height ?? 16),
-      image: kind.image, flipX: false, vx: 0, vy: 0, onGround: false, solid: false, blocks: [],
+      w: Number(p.w ?? frameWidth), h: Number(p.h ?? img?.height ?? 16),
+      image: kind.image, flipX: false, anim: '', animTime: 0,
+      vx: 0, vy: 0, onGround: false, solid: false, blocks: [],
     };
     for (const { type, ...values } of kind.blocks) {
       const behavior = this.behaviors.get(type);
@@ -171,15 +183,29 @@ export class World implements Module {
     if (game.paused) return;
     // Copy the list so objects can be added or removed while we go through it.
     for (const obj of [...this.objects]) {
+      const anim = obj.anim;
       for (const b of obj.blocks) b.behavior.update?.(obj, b.params, b.state, dt, game);
+      obj.animTime = obj.anim === anim ? obj.animTime + dt : 0; // a new animation starts from its first picture
     }
   }
 
   draw(ctx: CanvasRenderingContext2D, { assets }: Game): void {
     for (const o of this.objects) {
-      const img = assets.image(o.image);
-      if (img && (o.w > img.width || o.h > img.height)) assets.drawTiled(ctx, o.image, o.x, o.y, o.w, o.h);
-      else assets.draw(ctx, o.image, o.x, o.y, { flipX: o.flipX });
+      const look = this.look(o);
+      const img = assets.image(look.image);
+      const frames = look.frames ?? 1;
+      if (img && frames === 1 && (o.w > img.width || o.h > img.height)) {
+        assets.drawTiled(ctx, look.image, o.x, o.y, o.w, o.h);
+        continue;
+      }
+      const frame = Math.floor(o.animTime * (look.fps ?? 8));
+      assets.draw(ctx, look.image, o.x, o.y, { flipX: o.flipX, frames, frame });
     }
+  }
+
+  /** The picture to show now: the playing animation if the kind has it, otherwise the kind's own picture. */
+  private look(o: GameObject): Look {
+    const kind = this.kinds[o.kind];
+    return kind?.animations?.[o.anim] ?? kind ?? { image: o.image };
   }
 }
