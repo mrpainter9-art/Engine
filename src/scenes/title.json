@@ -5,7 +5,8 @@
     { "text": "작은 엔진", "x": 160, "y": 30, "align": "center", "color": "#f2c14e", "scale": 2 },
     { "text": "코인을 모두 모으면 다음 스테이지로", "x": 160, "y": 66, "align": "center" },
     { "text": "← → 이동     스페이스 점프", "x": 160, "y": 82, "align": "center" },
-    { "text": "스페이스를 눌러 시작", "x": 160, "y": 110, "align": "center", "color": "#9be38f" }
+    { "text": "스페이스를 눌러 시작", "x": 160, "y": 104, "align": "center", "color": "#9be38f" },
+    { "text": "최고 기록  1스테이지 {best-stage1}초  2스테이지 {best-stage2}초", "x": 160, "y": 4, "align": "center", "color": "#b8b0d0" }
   ],
   "next": "stage1",
   "objects": [

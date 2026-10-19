@@ -5,5 +5,6 @@
   "borderColor": "#111111",
   "soundVolume": 0.6,
   "musicVolume": 0.35,
-  "firstScene": "title"
+  "firstScene": "title",
+  "saveName": "small-engine-demo"
 }

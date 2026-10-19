@@ -3,6 +3,7 @@ import type { Sound } from './sound';
 import type { Camera } from './camera';
 import type { SceneData } from './scenes';
 import type { Input } from './input';
+import type { Save } from './save';
 import type { World } from './world';
 
 // What the core offers to every module. New engine services get added here.
@@ -12,6 +13,8 @@ export interface Game {
   input: Input;
   assets: Assets;
   sound: Sound;
+  /** Numbers kept after the browser closes (best records). */
+  save: Save;
   world: World;
   camera: Camera;
   /** Numbers the game keeps track of, e.g. { score: 3 }. Blocks add to them, rules read them. */

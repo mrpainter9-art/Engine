@@ -3,6 +3,7 @@ import { Camera } from './core/camera';
 import { Engine } from './core/engine';
 import { Input } from './core/input';
 import type { Game } from './core/module';
+import { Save } from './core/save';
 import { scenes } from './core/scenes';
 import { setupScreen, type ScreenSettings } from './core/screen';
 import { Sound } from './core/sound';
@@ -58,6 +59,7 @@ const game: Game = {
   input: new Input(controls, canvas),
   assets,
   sound,
+  save: new Save(settings.saveName),
   world,
   camera: new Camera(canvas.width, canvas.height, canvas.width, canvas.height),
   vars: {},
