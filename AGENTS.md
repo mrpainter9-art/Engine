@@ -10,6 +10,8 @@ The owner is a game designer with no coding background who wants to learn how an
 - One step = one concept = one visible result. Follow the step order in `docs/PLAN.md`; do not jump ahead.
 - Before a step: agree on a one-line "done when" check. After it: explain in plain Korean what was built and why,
   and point to one number the owner can change to see the effect.
+- Explain from the player's/designer's side: what you see, what you can change, what it is for. Skip code internals unless asked.
+- Give a playable link for each step (an Artifact page) so the owner can try it without installing anything, with sliders for the values the step adds.
 - Mark the step done in `docs/PLAN.md` and record any design decision there.
 
 ## Layout
@@ -24,5 +26,5 @@ The owner is a game designer with no coding background who wants to learn how an
 - Keep files small and single-purpose; no new dependencies without need.
 
 ## Rules
-- UI text is Korean; code and comments English.
+- UI text, PR titles/descriptions and commit messages are Korean; code and comments English.
 - The previous attempt (editor v1) is in git history at commit `0fb485f`; reuse ideas from it only when a step needs them.
