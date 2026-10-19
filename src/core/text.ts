@@ -15,20 +15,23 @@ export interface TextOptions {
   align?: 'left' | 'center' | 'right';
   /** Dark outline color so text reads on any background. Empty string = no outline. */
   outline?: string;
+  /** Whole-number size: 1 = normal, 2 = twice as big (still crisp). */
+  scale?: number;
 }
 
 /** Write text with its top edge at y. Use \n for more lines. */
 export function drawText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, opt: TextOptions = {}): void {
   const { color = '#ffffff', align = 'left', outline = '#1d1826' } = opt;
-  ctx.font = `${SIZE}px ${FONT}`;
+  const k = Math.max(1, Math.round(opt.scale ?? 1));
+  ctx.font = `${SIZE * k}px ${FONT}`;
   ctx.textAlign = align;
   ctx.textBaseline = 'top';
   text.split('\n').forEach((line, i) => {
     const lx = Math.round(x);
-    const ly = Math.round(y) + i * (SIZE + 2);
+    const ly = Math.round(y) + i * (SIZE + 2) * k;
     if (outline) {
       ctx.fillStyle = outline;
-      for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) ctx.fillText(line, lx + dx, ly + dy);
+      for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) ctx.fillText(line, lx + dx * k, ly + dy * k);
     }
     ctx.fillStyle = color;
     ctx.fillText(line, lx, ly);

@@ -22,6 +22,14 @@ export class Camera {
     this.clamp();
   }
 
+  /** A new scene can have a different world size. */
+  setWorld(width: number, height: number): void {
+    this.worldWidth = width;
+    this.worldHeight = height;
+    this.x = 0;
+    this.y = 0;
+  }
+
   /** Jump straight to a point (used when the game starts). */
   jumpTo(cx: number, cy: number): void {
     this.x = cx - this.viewWidth / 2;

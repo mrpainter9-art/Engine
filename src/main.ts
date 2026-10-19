@@ -2,9 +2,11 @@ import { Assets, drawLoading } from './core/assets';
 import { Camera } from './core/camera';
 import { Engine } from './core/engine';
 import { Input } from './core/input';
+import type { Game } from './core/module';
+import { scenes } from './core/scenes';
 import { setupScreen, type ScreenSettings } from './core/screen';
 import { Sound } from './core/sound';
-import { World, type KindDef, type Placement } from './core/world';
+import { World, type KindDef } from './core/world';
 import { animateByMovement } from './behaviors/animate-by-movement';
 import { bob } from './behaviors/bob';
 import { cameraFollow } from './behaviors/camera-follow';
@@ -20,10 +22,11 @@ import { solid } from './behaviors/solid';
 import { stayInWorld } from './behaviors/stay-in-world';
 import { vanishOnTouch } from './behaviors/vanish-on-touch';
 import { createBackground } from './modules/background/background';
+import { createMusic } from './modules/music/music';
 import { createRules } from './modules/rules/rules';
+import { createTexts } from './modules/texts/texts';
 import controls from './controls.json';
 import kinds from './kinds.json';
-import scene from './scenes/main.json';
 import settings from './settings.json';
 
 const canvas = document.getElementById('screen') as HTMLCanvasElement;
@@ -47,23 +50,31 @@ const world = new World(kinds as Record<string, KindDef>)
   .addBehavior(gravity)
   .addBehavior(jump)
   .addBehavior(respawnOnFall)
-  .addBehavior(animateByMovement)
-  .load(scene.objects as Placement[]);
+  .addBehavior(animateByMovement);
 
-// The scene decides how big the world is; without a size it is one screen.
-const size = scene.size ?? { width: canvas.width, height: canvas.height };
-const camera = new Camera(canvas.width, canvas.height, size.width, size.height);
-
-const game = { width: canvas.width, height: canvas.height, input: new Input(controls, canvas), assets, sound, world, camera, vars: {}, paused: false };
-
-sound.music(scene.music ?? '');
+const game: Game = {
+  width: canvas.width,
+  height: canvas.height,
+  input: new Input(controls, canvas),
+  assets,
+  sound,
+  world,
+  camera: new Camera(canvas.width, canvas.height, canvas.width, canvas.height),
+  vars: {},
+  paused: false,
+  scene: { objects: [] },
+  sceneName: '',
+  goTo: () => {}, // the engine fills this in
+};
 
 // Register modules here. Removing a feature = removing its line. Earlier modules draw first (behind).
-new Engine(ctx, game)
+new Engine(ctx, game, scenes)
   .add(createBackground())
   .add(world)
+  .add(createTexts())
   .add(createRules())
-  .start();
+  .add(createMusic())
+  .start(settings.firstScene);
 
 // Lets you look at the game from the browser console while developing (type "game").
 if (import.meta.env.DEV) Object.assign(window, { game });

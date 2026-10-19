@@ -1,6 +1,8 @@
 {
   "size": { "width": 960, "height": 180 },
   "music": "song",
+  "rules": { "timeLimit": 60 },
+  "next": "stage2",
   "objects": [
     { "kind": "tree", "x": 40, "y": 144 },
     { "kind": "tree", "x": 230, "y": 144 },

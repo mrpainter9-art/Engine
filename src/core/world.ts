@@ -69,19 +69,12 @@ export class World implements Module {
   name = 'world';
   objects: GameObject[] = [];
   private behaviors = new Map<string, Behavior>();
-  private scene: Placement[] = [];
   private game!: Game;
 
   constructor(private kinds: Record<string, KindDef>) {}
 
   addBehavior(b: Behavior): this {
     this.behaviors.set(b.type, b);
-    return this;
-  }
-
-  /** Objects to create when the game starts, usually from a scene file. */
-  load(placements: Placement[]): this {
-    this.scene.push(...placements);
     return this;
   }
 
@@ -166,17 +159,12 @@ export class World implements Module {
 
   init(game: Game): void {
     this.game = game;
-    this.start();
   }
 
-  /** Put every object back the way the scene file says (used to play again). */
-  restart(): void {
+  /** A scene starts: place every object the scene file lists. */
+  enter(game: Game): void {
     this.objects = [];
-    this.start();
-  }
-
-  private start(): void {
-    for (const p of this.scene) this.spawn(p);
+    for (const p of game.scene.objects) this.spawn(p);
   }
 
   update(dt: number, game: Game): void {

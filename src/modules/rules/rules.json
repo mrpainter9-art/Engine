@@ -6,6 +6,7 @@
   "winText": "클리어!\n{time}초 남기고 모두 모았어요",
   "loseText": "시간 초과\n코인 {score}/{goal}",
   "restartText": "스페이스를 누르면 다시 시작해요",
+  "nextText": "스페이스를 누르면 다음으로",
   "winSound": "clear",
   "loseSound": "lose"
 }

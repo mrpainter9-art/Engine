@@ -4,5 +4,6 @@
   "scaling": "sharp",
   "borderColor": "#111111",
   "soundVolume": 0.6,
-  "musicVolume": 0.35
+  "musicVolume": 0.35,
+  "firstScene": "title"
 }
