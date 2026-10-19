@@ -8,12 +8,16 @@ import { bob } from './behaviors/bob';
 import { cameraFollow } from './behaviors/camera-follow';
 import { chase } from './behaviors/chase';
 import { faceMovement } from './behaviors/face-movement';
+import { gravity } from './behaviors/gravity';
+import { jump } from './behaviors/jump';
 import { moveWithKeys } from './behaviors/move-with-keys';
 import { patrol } from './behaviors/patrol';
+import { respawnOnFall } from './behaviors/respawn-on-fall';
 import { sendBackOnTouch } from './behaviors/send-back-on-touch';
+import { solid } from './behaviors/solid';
 import { stayInWorld } from './behaviors/stay-in-world';
 import { vanishOnTouch } from './behaviors/vanish-on-touch';
-import { createGround } from './modules/ground/ground';
+import { createBackground } from './modules/background/background';
 import { createRules } from './modules/rules/rules';
 import controls from './controls.json';
 import kinds from './kinds.json';
@@ -36,6 +40,10 @@ const world = new World(kinds as Record<string, KindDef>)
   .addBehavior(cameraFollow)
   .addBehavior(vanishOnTouch)
   .addBehavior(sendBackOnTouch)
+  .addBehavior(solid)
+  .addBehavior(gravity)
+  .addBehavior(jump)
+  .addBehavior(respawnOnFall)
   .load(scene.objects as Placement[]);
 
 // The scene decides how big the world is; without a size it is one screen.
@@ -46,7 +54,10 @@ const game = { width: canvas.width, height: canvas.height, input: new Input(cont
 
 // Register modules here. Removing a feature = removing its line. Earlier modules draw first (behind).
 new Engine(ctx, game)
-  .add(createGround())
+  .add(createBackground())
   .add(world)
   .add(createRules())
   .start();
+
+// Lets you look at the game from the browser console while developing (type "game").
+if (import.meta.env.DEV) Object.assign(window, { game });

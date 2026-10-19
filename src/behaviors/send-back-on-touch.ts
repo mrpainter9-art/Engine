@@ -9,6 +9,7 @@ export const sendBackOnTouch: Behavior = {
       if (world.touching(o, t)) {
         t.x = t.startX;
         t.y = t.startY;
+        t.vy = 0;
       }
     }
   },

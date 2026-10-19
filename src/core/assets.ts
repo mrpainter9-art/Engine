@@ -64,6 +64,21 @@ export class Assets {
     }
   }
 
+  /** Fill a w x h box by repeating an image (floors, walls, long platforms). */
+  drawTiled(ctx: CanvasRenderingContext2D, name: string, x: number, y: number, w: number, h: number): void {
+    const img = this.images.get(name);
+    if (!img) return this.draw(ctx, name, x, y);
+    x = Math.round(x);
+    y = Math.round(y);
+    for (let ty = 0; ty < h; ty += img.height) {
+      for (let tx = 0; tx < w; tx += img.width) {
+        const cw = Math.min(img.width, w - tx);
+        const ch = Math.min(img.height, h - ty);
+        ctx.drawImage(img, 0, 0, cw, ch, x + tx, y + ty, cw, ch);
+      }
+    }
+  }
+
   private reportMissing(name: string): void {
     if (this.missing.has(name)) return;
     this.missing.add(name);

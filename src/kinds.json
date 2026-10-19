@@ -2,9 +2,12 @@
   "player": {
     "image": "player",
     "blocks": [
-      { "type": "move-with-keys", "speed": 90 },
+      { "type": "move-with-keys", "speed": 80, "axes": "horizontal" },
+      { "type": "jump", "power": 240 },
+      { "type": "gravity", "strength": 600 },
       { "type": "face-movement" },
-      { "type": "stay-in-world" },
+      { "type": "stay-in-world", "bottom": false },
+      { "type": "respawn-on-fall" },
       { "type": "camera-follow", "speed": 5 }
     ]
   },
@@ -18,7 +21,8 @@
   "slime": {
     "image": "slime",
     "blocks": [
-      { "type": "patrol", "speed": 30, "distance": 60 },
+      { "type": "patrol", "speed": 30, "distance": 0, "edges": true },
+      { "type": "gravity" },
       { "type": "face-movement" },
       { "type": "send-back-on-touch", "target": "player" }
     ]
@@ -31,6 +35,18 @@
       { "type": "face-movement" },
       { "type": "send-back-on-touch", "target": "player" }
     ]
+  },
+  "ground": {
+    "image": "ground",
+    "blocks": [{ "type": "solid" }]
+  },
+  "platform": {
+    "image": "platform",
+    "blocks": [{ "type": "solid" }]
+  },
+  "wall": {
+    "image": "wall",
+    "blocks": [{ "type": "solid" }]
   },
   "tree": {
     "image": "tree",

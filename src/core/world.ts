@@ -13,6 +13,13 @@ export interface GameObject {
   startY: number;
   image: string;
   flipX: boolean;
+  /** Speed in pixels per second, used by blocks like gravity and jump. */
+  vx: number;
+  vy: number;
+  /** True while standing on something solid (set when falling is stopped). */
+  onGround: boolean;
+  /** Solid objects stop others that move with world.move (walls, floors, platforms). */
+  solid: boolean;
   blocks: BlockInstance[];
 }
 
@@ -76,10 +83,11 @@ export class World implements Module {
     }
     const { kind: name, x, y, ...overrides } = p;
     const img = this.game.assets.image(kind.image);
+    // A scene line may give w/h to make an object bigger than its picture (the picture repeats).
     const obj: GameObject = {
       kind: name, x, y, startX: x, startY: y,
-      w: img?.width ?? 16, h: img?.height ?? 16,
-      image: kind.image, flipX: false, blocks: [],
+      w: Number(p.w ?? img?.width ?? 16), h: Number(p.h ?? img?.height ?? 16),
+      image: kind.image, flipX: false, vx: 0, vy: 0, onGround: false, solid: false, blocks: [],
     };
     for (const { type, ...values } of kind.blocks) {
       const behavior = this.behaviors.get(type);
@@ -111,6 +119,39 @@ export class World implements Module {
     return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
   }
 
+  /** Is there a solid object at this point? */
+  solidAt(x: number, y: number, except?: GameObject): boolean {
+    return this.objects.some((s) => s.solid && s !== except && x >= s.x && x < s.x + s.w && y >= s.y && y < s.y + s.h);
+  }
+
+  /**
+   * Move an object, stopping it at solid objects. Moves sideways first, then up/down,
+   * so sliding along a floor or wall works. Returns which direction was blocked.
+   */
+  move(o: GameObject, dx: number, dy: number): { x: boolean; y: boolean } {
+    const hit = { x: false, y: false };
+    if (dx) {
+      o.x += dx;
+      for (const s of this.solidsTouching(o)) {
+        o.x = dx > 0 ? s.x - o.w : s.x + s.w;
+        hit.x = true;
+      }
+    }
+    if (dy) {
+      o.y += dy;
+      for (const s of this.solidsTouching(o)) {
+        o.y = dy > 0 ? s.y - o.h : s.y + s.h;
+        if (dy > 0) o.onGround = true;
+        hit.y = true;
+      }
+    }
+    return hit;
+  }
+
+  private solidsTouching(o: GameObject): GameObject[] {
+    return this.objects.filter((s) => s.solid && s !== o && this.touching(o, s));
+  }
+
   init(game: Game): void {
     this.game = game;
     this.start();
@@ -135,6 +176,10 @@ export class World implements Module {
   }
 
   draw(ctx: CanvasRenderingContext2D, { assets }: Game): void {
-    for (const o of this.objects) assets.draw(ctx, o.image, o.x, o.y, { flipX: o.flipX });
+    for (const o of this.objects) {
+      const img = assets.image(o.image);
+      if (img && (o.w > img.width || o.h > img.height)) assets.drawTiled(ctx, o.image, o.x, o.y, o.w, o.h);
+      else assets.draw(ctx, o.image, o.x, o.y, { flipX: o.flipX });
+    }
   }
 }

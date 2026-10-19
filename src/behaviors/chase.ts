@@ -12,7 +12,6 @@ export const chase: Behavior = {
       if (d < bestDist) [best, bestDist] = [t, d];
     }
     if (!best || bestDist < 1 || (range > 0 && bestDist > range)) return;
-    o.x += ((best.x - o.x) / bestDist) * speed * dt;
-    o.y += ((best.y - o.y) / bestDist) * speed * dt;
+    world.move(o, ((best.x - o.x) / bestDist) * speed * dt, ((best.y - o.y) / bestDist) * speed * dt);
   },
 };

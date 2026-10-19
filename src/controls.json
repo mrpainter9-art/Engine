@@ -3,5 +3,6 @@
   "right": ["ArrowRight", "KeyD"],
   "up": ["ArrowUp", "KeyW"],
   "down": ["ArrowDown", "KeyS"],
-  "action": ["Space", "KeyZ"]
+  "action": ["Space", "KeyZ"],
+  "jump": ["Space", "ArrowUp", "KeyW", "KeyZ"]
 }
