@@ -12,6 +12,8 @@ export interface Ed {
   palette: string | null;
   /** The scene line (placed object) shown in the 인스펙터. */
   selected: Placement | null;
+  /** Every selected object (Ctrl/Shift+click picks more); `selected` is the last one picked. */
+  selection: Placement[];
   /** A file picked in the 프로젝트 panel, shown in the 인스펙터 instead of the selected object. */
   inspecting: { type: 'prefab' | 'image' | 'sound' | 'scene'; name: string } | null;
   /** A prefab or picture being dragged from the 프로젝트 panel (shown on the map until dropped). */
@@ -22,6 +24,8 @@ export interface Ed {
   change(fn: () => void): void;
   /** Select a placed object (or nothing): the 인스펙터 shows it again. */
   pick(p: Placement | null): void;
+  /** Add an object to the selection, or take it out if it's already in. */
+  toggle(p: Placement): void;
   /** Show a file of the 프로젝트 panel in the 인스펙터. */
   inspect(type: 'prefab' | 'image' | 'sound' | 'scene', name: string): void;
   /** Bring a panel to the front (opens it if it was closed). */

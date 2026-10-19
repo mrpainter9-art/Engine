@@ -75,6 +75,17 @@ export function moveNode(scene: SceneData, node: Placement, target: Placement | 
   node.y = pos.y - base.y;
 }
 
+/** These nodes in list order, leaving out any that sit inside another one of them (they go along with it). */
+export function outermost(scene: SceneData, nodes: Placement[]): Placement[] {
+  const out: Placement[] = [];
+  eachNode(scene.objects, (p) => {
+    if (!nodes.includes(p)) return;
+    for (let up = spotOf(scene, p)?.parent; up; up = spotOf(scene, up)?.parent) if (nodes.includes(up)) return;
+    out.push(p);
+  });
+  return out;
+}
+
 /** What to call a node in lists: its name, else its kind. */
 export function nodeLabel(p: Placement): string {
   return p.name || p.kind || '빈 오브젝트';

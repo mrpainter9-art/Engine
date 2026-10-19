@@ -21,11 +21,11 @@ import { respawnOnFall } from './behaviors/respawn-on-fall';
 import { sendBackOnTouch } from './behaviors/send-back-on-touch';
 import { solid } from './behaviors/solid';
 import { stayInWorld } from './behaviors/stay-in-world';
+import { text } from './behaviors/text';
 import { vanishOnTouch } from './behaviors/vanish-on-touch';
 import { createBackground } from './modules/background/background';
 import { createMusic } from './modules/music/music';
 import { createRules } from './modules/rules/rules';
-import { createTexts } from './modules/texts/texts';
 import controls from './controls.json';
 import kinds from './kinds.json';
 import settings from './settings.json';
@@ -52,7 +52,8 @@ const world = new World(kinds as Record<string, KindDef>)
   .addBehavior(gravity)
   .addBehavior(jump)
   .addBehavior(respawnOnFall)
-  .addBehavior(animateByMovement);
+  .addBehavior(animateByMovement)
+  .addBehavior(text);
 
 const game: Game = {
   width: canvas.width,
@@ -75,7 +76,6 @@ const game: Game = {
 const engine = new Engine(ctx, game, scenes)
   .add(createBackground())
   .add(world)
-  .add(createTexts())
   .add(createRules())
   .add(createMusic());
 

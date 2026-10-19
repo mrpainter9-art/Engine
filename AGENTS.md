@@ -18,7 +18,7 @@ The owner is a game designer with no coding background who wants to learn how an
 ## Layout
 - `src/main.ts` registers modules. `src/core/` engine loop + `Module` interface. `src/modules/<name>/` one feature each, values in a JSON next to it.
   `src/kinds.json` object kinds = image + list of behavior blocks. `src/behaviors/<block>.ts` one block each (registered with `world.addBehavior`, documented in `docs/BLOCKS.md`).
-  `src/scenes/*.json` one scene each (size, background, music, texts, rules, next, objects; see `docs/SCENES.md`).
+  `src/scenes/*.json` one scene each (size, background, music, rules, next, objects; texts are objects of the `text` prefab; see `docs/SCENES.md`).
   Prefer a new block over kind-specific code. A block declares `label` (Korean, shown in the editor) and `defaults` (every value it reads).
 - `src/editor/` the in-browser editor (dev only, not in exported games). Panels live in a split/tab layout (`dock.ts`); the 프로젝트 panel (`browser.ts`, icons in `icons.ts`) lists prefabs, pictures, sounds and scenes;
   the 인스펙터 shows the selected object or file (`panels.ts`, `assetview.ts`);

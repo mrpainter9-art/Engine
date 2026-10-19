@@ -1,13 +1,6 @@
 {
   "background": "#2b2140",
   "music": "song",
-  "texts": [
-    { "text": "작은 엔진", "x": 160, "y": 30, "align": "center", "color": "#f2c14e", "scale": 2 },
-    { "text": "코인을 모두 모으면 다음 스테이지로", "x": 160, "y": 66, "align": "center" },
-    { "text": "← → 이동     스페이스 점프", "x": 160, "y": 82, "align": "center" },
-    { "text": "스페이스를 눌러 시작", "x": 160, "y": 104, "align": "center", "color": "#9be38f" },
-    { "text": "최고 기록  1스테이지 {best-stage1}초  2스테이지 {best-stage2}초", "x": 160, "y": 4, "align": "center", "color": "#b8b0d0" }
-  ],
   "next": "stage1",
   "objects": [
     { "kind": "tree", "x": 24, "y": 144 },
@@ -16,6 +9,11 @@
     { "kind": "coin", "x": 120, "y": 136 },
     { "kind": "coin", "x": 156, "y": 130 },
     { "kind": "coin", "x": 192, "y": 136 },
-    { "kind": "slime", "x": 60, "y": 148, "distance": 180 }
+    { "kind": "slime", "x": 60, "y": 148, "distance": 180 },
+    { "kind": "text", "name": "제목", "x": 160, "y": 30, "text": "작은 엔진", "align": "center", "color": "#f2c14e", "scale": 2 },
+    { "kind": "text", "name": "설명", "x": 160, "y": 66, "text": "코인을 모두 모으면 다음 스테이지로", "align": "center" },
+    { "kind": "text", "name": "조작", "x": 160, "y": 82, "text": "← → 이동     스페이스 점프", "align": "center" },
+    { "kind": "text", "name": "시작 안내", "x": 160, "y": 104, "text": "스페이스를 눌러 시작", "align": "center", "color": "#9be38f" },
+    { "kind": "text", "name": "최고 기록", "x": 160, "y": 4, "text": "최고 기록  1스테이지 {best-stage1}초  2스테이지 {best-stage2}초", "align": "center", "color": "#b8b0d0" }
   ]
 }

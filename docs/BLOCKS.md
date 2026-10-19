@@ -18,6 +18,7 @@
 | `gravity` | 아래로 떨어지다가 단단한 오브젝트 위에 서요 | `strength` 떨어지는 힘, 클수록 빨리 떨어져요 (600), `maxFall` 가장 빠른 낙하 속도 (300) |
 | `jump` | 서 있을 때 점프 키를 누르면 뛰어올라요. `gravity` 앞에 두세요 | `power` 클수록 높이 (240), `key` 조작 설정의 동작 이름 (jump), `sound` 뛸 때 소리 ("") |
 | `respawn-on-fall` | 맵 아래로 떨어지면 처음 자리로 돌아와요 | 없음 |
+| `text` | 글자를 보여 줘요 (제목, 안내, 최고 기록). `{score}`, `{best-stage1}`처럼 쓰면 숫자가 들어가요. 그림 없이 이 컴포넌트만 있는 `text` 프리팹을 끌어 놓아 써요 | `text` 내용 (글자), `align` left/center/right, x가 글자의 시작·가운데·끝 (left), `color` (#ffffff), `scale` 2는 두 배 (1), `screen` true면 화면에 고정, false면 맵 위에 있어서 화면과 같이 지나가요 (true) |
 | `animate-by-movement` | 움직임에 맞는 애니메이션을 골라요 (서 있기, 걷기, 공중). 움직이는 컴포넌트 뒤에 두세요 | `idle` 서 있을 때 (""), `walk` 걸을 때 (walk), `air` 공중에 있을 때 (jump). ""이면 프리팹의 기본 그림 |
 
 새 컴포넌트가 필요하면 "이런 컴포넌트 만들어 줘"라고 말해 주세요. 컴포넌트 하나 = `src/behaviors/` 안의 파일 하나 + `main.ts`의 등록 한 줄이에요.

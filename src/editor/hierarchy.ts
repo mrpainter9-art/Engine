@@ -1,21 +1,25 @@
 import type { Placement } from '../core/world';
 import type { Ed } from './state';
-import { eachNode, moveNode, nodeLabel, spotOf } from './tree';
+import { typeIcon } from './icons';
+import { eachNode, moveNode, nodeLabel, outermost, spotOf } from './tree';
 import { h, thumbnail } from './ui';
 
 // The 오브젝트 panel: every node of the scene as a tree, like Unity's Hierarchy.
-// Click to select, drag onto a node to put it inside, drag between rows to change the order
-// (lower in the list = drawn in front).
+// Click to select (Ctrl+click adds or removes one, Shift+click picks a whole run), drag onto a node
+// to put it inside, drag between rows to change the order (lower in the list = drawn in front).
 
 const folded = new WeakSet<Placement>();
 let dragged: Placement | null = null;
+let anchor: Placement | null = null; // where a Shift+click run starts
 
 export function renderHierarchy(ed: Ed, root: HTMLElement): void {
   const scene = ed.game.scene;
   const list = h('div', { class: 'ed-tree' });
 
+  const shown: Placement[] = [];
   eachNode(scene.objects, (p, depth) => {
     if (hiddenByFold(ed, p)) return;
+    shown.push(p);
     const kind = ed.kinds[p.kind];
     const hasKids = !!p.children?.length;
     const toggle = h('span', { class: 'ed-fold', textContent: hasKids ? (folded.has(p) ? '▸' : '▾') : '' });
@@ -25,15 +29,31 @@ export function renderHierarchy(ed: Ed, root: HTMLElement): void {
       else folded.add(p);
       ed.render();
     };
-    const icon = kind ? thumbnail(ed.game.assets.image(kind.image), kind.frames, 18) : h('span', { class: 'ed-empty-icon', textContent: '◇' });
+    // Same look as the 프로젝트 panel: the picture with a small type mark in its corner.
+    const icon = kind?.image
+      ? h('span', { class: 'ed-thumb-box ed-small' }, thumbnail(ed.game.assets.image(kind.image), kind.frames, 18), h('span', { class: 'ed-badge' }, typeIcon('prefab', 9)))
+      : typeIcon(kind?.blocks.some((b) => b.type === 'text') ? 'text' : 'empty', 18);
     const row = h('div', {
-      class: `ed-node ${ed.selected === p ? 'ed-on' : ''}`,
+      class: `ed-node ${ed.selected === p ? 'ed-on' : ed.selection.includes(p) ? 'ed-also' : ''}`,
       draggable: true,
       style: `padding-left:${6 + depth * 14}px`,
       title: '끌어서 다른 오브젝트 위에 놓으면 그 안으로, 사이에 놓으면 순서 바꾸기',
     }, toggle, icon, h('span', { textContent: nodeLabel(p) }), p.name && p.kind ? h('small', { textContent: p.kind }) : null);
-    row.onclick = () => {
-      ed.pick(p);
+    row.onclick = (e) => {
+      if (e.shiftKey && anchor && shown.includes(anchor)) {
+        // Shift+click: everything between the last clicked row and this one.
+        const [a, b] = [shown.indexOf(anchor), shown.indexOf(p)].sort((x, y) => x - y);
+        ed.pick(null);
+        for (const q of shown.slice(a, b + 1)) ed.toggle(q);
+        ed.selection = [...ed.selection.filter((q) => q !== p), p]; // the clicked one is the main pick
+        ed.selected = p;
+      } else if (e.ctrlKey || e.metaKey) {
+        ed.toggle(p);
+        anchor = p;
+      } else {
+        ed.pick(p);
+        anchor = p;
+      }
       ed.render();
     };
     row.addEventListener('dragstart', (e) => {
@@ -52,7 +72,7 @@ export function renderHierarchy(ed: Ed, root: HTMLElement): void {
       const node = dragged;
       const where = zone(e, row);
       dragged = null;
-      if (node && node !== p) ed.change(() => moveNode(scene, node, p, where));
+      if (node && node !== p) ed.change(() => moveMany(ed, node, p, where));
     });
     list.append(row);
   });
@@ -69,7 +89,7 @@ export function renderHierarchy(ed: Ed, root: HTMLElement): void {
     e.preventDefault();
     const node = dragged;
     dragged = null;
-    if (node) ed.change(() => moveNode(scene, node, null, 'after'));
+    if (node) ed.change(() => moveMany(ed, node, null, 'after'));
   });
 
   root.replaceChildren(
@@ -82,7 +102,7 @@ export function renderHierarchy(ed: Ed, root: HTMLElement): void {
 }
 
 /** Make an empty node (choose its prefab in the 인스펙터). At the middle of the view, or just inside the parent. */
-function addNode(ed: Ed, parent: Placement | null): void {
+export function addNode(ed: Ed, parent: Placement | null): void {
   const { camera } = ed.game;
   const node: Placement = parent
     ? { kind: '', x: 8, y: 0 }
@@ -98,6 +118,13 @@ function addNode(ed: Ed, parent: Placement | null): void {
   ed.pick(node);
   ed.show('inspector');
   ed.render();
+}
+
+/** Move the dragged node, or every selected node when the dragged one is part of the selection (keeping their order). */
+function moveMany(ed: Ed, node: Placement, target: Placement | null, where: 'before' | 'after' | 'into'): void {
+  const scene = ed.game.scene;
+  const nodes = ed.selection.includes(node) ? outermost(scene, ed.selection).filter((n) => n !== target) : [node];
+  for (const n of where === 'after' && target ? [...nodes].reverse() : nodes) moveNode(scene, n, target, where);
 }
 
 /** Top quarter of a row = before it, bottom quarter = after it, middle = inside it. */

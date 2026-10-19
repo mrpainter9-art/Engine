@@ -20,6 +20,16 @@ export interface TextOptions {
   scale?: number;
 }
 
+/** How big text would be on screen, in pixels. */
+export function measureText(text: string, scale = 1): { w: number; h: number } {
+  const k = Math.max(1, Math.round(scale));
+  measurer.font = `${SIZE * k}px ${FONT}`;
+  const lines = text.split('\n');
+  return { w: Math.ceil(Math.max(...lines.map((l) => measurer.measureText(l).width))), h: lines.length * (SIZE + 2) * k - 2 * k };
+}
+
+const measurer = document.createElement('canvas').getContext('2d')!;
+
 /** Write text with its top edge at y. Use \n for more lines. */
 export function drawText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, opt: TextOptions = {}): void {
   const { color = '#ffffff', align = 'left', outline = '#1d1826' } = opt;
