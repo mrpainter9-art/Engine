@@ -39,9 +39,8 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
 
   // One element per panel; the dock decides where each one sits.
   const projectPanel = h('div', { class: 'ed-panel' });
-  const objectPanel = h('div', { class: 'ed-panel' });
+  const inspectorPanel = h('div', { class: 'ed-panel' });
   const treePanel = h('div', { class: 'ed-panel' });
-  const kindPanel = h('div', { class: 'ed-panel' });
   const scenePanel = h('div', { class: 'ed-panel' });
   const bar = h('div', { id: 'ed-bar' });
 
@@ -52,7 +51,7 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
     behaviors: [],
     palette: null,
     selected: null,
-    kindName: null,
+    inspecting: null,
     grid: 4,
     dragging: null,
     change(fn) {
@@ -61,6 +60,14 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
       fn();
       restartScene();
       render();
+    },
+    pick(p) {
+      ed.selected = p;
+      ed.inspecting = null;
+    },
+    inspect(type, name) {
+      ed.inspecting = { type, name };
+      dock.show('inspector');
     },
     show: (id) => dock.show(id),
     openScene: (name) => goToScene(name),
@@ -207,7 +214,7 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
   function place(kind: string, p: { x: number; y: number }): void {
     const placement = spot(kind, p);
     ed.change(() => game.scene.objects.push(placement));
-    ed.selected = placement;
+    ed.pick(placement);
     render();
   }
 
@@ -233,7 +240,7 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
       }
       if (ed.palette) return place(ed.palette, p);
       const hit = pick(p);
-      ed.selected = hit?.source ?? null;
+      ed.pick(hit?.source ?? null);
       if (hit) {
         drag = { obj: hit, dx: p.x - hit.x, dy: p.y - hit.y, before: snapshot(), moved: false };
       }
@@ -292,7 +299,7 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
         const kind = prefabFor(kinds, item.name);
         game.scene.objects.push((placement = spot(kind, p)));
       });
-      ed.selected = placement;
+      ed.pick(placement);
       render();
     });
     canvas.addEventListener('wheel', (e) => {
@@ -337,8 +344,7 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
     renderBar();
     renderBrowser(ed, projectPanel);
     renderHierarchy(ed, treePanel);
-    renderPanel(ed, objectPanel, 'object');
-    renderPanel(ed, kindPanel, 'kind');
+    renderPanel(ed, inspectorPanel, 'inspector');
     renderPanel(ed, scenePanel, 'scene');
   }
 
@@ -396,8 +402,7 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
       dock.add({ id: 'view', title: '장면 보기', el: stage, closable: false });
       dock.add({ id: 'project', title: '프로젝트', el: projectPanel });
       dock.add({ id: 'tree', title: '오브젝트 목록', el: treePanel });
-      dock.add({ id: 'object', title: '오브젝트', el: objectPanel });
-      dock.add({ id: 'kind', title: '프리팹', el: kindPanel });
+      dock.add({ id: 'inspector', title: '인스펙터', el: inspectorPanel });
       dock.add({ id: 'scene', title: '장면', el: scenePanel });
       dock.load();
       dock.onChange = renderBar;
@@ -499,7 +504,7 @@ function defaultLayout(): Layout {
         items: [
           { tabs: ['tree'], active: 0 },
           { tabs: ['view'], active: 0 },
-          { split: 'col', sizes: [55, 45], items: [{ tabs: ['object'], active: 0 }, { tabs: ['kind', 'scene'], active: 0 }] },
+          { split: 'col', sizes: [65, 35], items: [{ tabs: ['inspector'], active: 0 }, { tabs: ['scene'], active: 0 }] },
         ],
       },
       { tabs: ['project'], active: 0 },

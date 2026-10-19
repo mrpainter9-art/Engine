@@ -20,7 +20,8 @@ The owner is a game designer with no coding background who wants to learn how an
   `src/kinds.json` object kinds = image + list of behavior blocks. `src/behaviors/<block>.ts` one block each (registered with `world.addBehavior`, documented in `docs/BLOCKS.md`).
   `src/scenes/*.json` one scene each (size, background, music, texts, rules, next, objects; see `docs/SCENES.md`).
   Prefer a new block over kind-specific code. A block declares `label` (Korean, shown in the editor) and `defaults` (every value it reads).
-- `src/editor/` the in-browser editor (dev only, not in exported games). Panels live in a split/tab layout (`dock.ts`); the 프로젝트 panel (`browser.ts`) lists prefabs, pictures, sounds and scenes;
+- `src/editor/` the in-browser editor (dev only, not in exported games). Panels live in a split/tab layout (`dock.ts`); the 프로젝트 panel (`browser.ts`, icons in `icons.ts`) lists prefabs, pictures, sounds and scenes;
+  the 인스펙터 shows the selected object or file (`panels.ts`, `assetview.ts`);
   scene nodes form a tree (`children`, positions relative to the parent; helpers in `tree.ts`). It saves through `tools/editor-server.ts`
   (writes only `src/kinds.json` and `src/scenes/*.json`). Keep JSON hand-written style (`src/editor/format.ts`).
 - Export: `npm run export` → `export/game.html` (one file). `EDITOR_DEMO=1 npm run export` → `export/editor-demo.html`.

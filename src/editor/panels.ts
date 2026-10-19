@@ -1,10 +1,12 @@
 import type { SceneText } from '../core/scenes';
 import type { Behavior, KindDef, Look, Params, Placement } from '../core/world';
+import { renderAsset, typeHeader } from './assetview';
 import { NAME_RULE, type Ed } from './state';
 import { eachNode, removeNode, spotOf } from './tree';
 import { checkInput, confirmButton, h, numberInput, row, selectInput, textInput, thumbnail } from './ui';
 
-// Three panels: the selected object, its kind, and the whole scene. Each can sit anywhere in the layout.
+// Two panels: the 인스펙터 (the selected object, or the prefab / file picked in the 프로젝트 panel, like Unity)
+// and the scene settings. Each can sit anywhere in the layout.
 
 const PARAM_NAMES: Record<string, string> = {
   speed: '빠르기', distance: '거리', edges: '발판 끝에서 돌기', height: '높이', target: '대상 프리팹', range: '이 거리 안이면',
@@ -13,12 +15,14 @@ const PARAM_NAMES: Record<string, string> = {
 };
 
 /** Fill a panel: clear it and let one of the tab builders below add its rows. */
-export function renderPanel(ed: Ed, root: HTMLElement, which: 'object' | 'kind' | 'scene'): void {
+export function renderPanel(ed: Ed, root: HTMLElement, which: 'inspector' | 'scene'): void {
   const body = h('div', { class: 'ed-body' });
   root.replaceChildren(body);
-  if (which === 'object') objectTab(ed, body);
-  if (which === 'kind') kindTab(ed, body);
-  if (which === 'scene') sceneTab(ed, body);
+  if (which === 'scene') return sceneTab(ed, body);
+  const file = ed.inspecting;
+  if (file?.type === 'prefab' && ed.kinds[file.name]) kindTab(ed, body, file.name);
+  else if (file && file.type !== 'prefab') renderAsset(ed, body, file.type, file.name);
+  else objectTab(ed, body);
 }
 
 // ---- 오브젝트: one node of the scene ----
@@ -26,7 +30,7 @@ export function renderPanel(ed: Ed, root: HTMLElement, which: 'object' | 'kind' 
 function objectTab(ed: Ed, body: HTMLElement): void {
   const p = ed.selected;
   if (!p) {
-    body.append(h('p', { class: 'ed-note', textContent: '맵이나 오브젝트 목록에서 오브젝트를 고르면 이름, 프리팹, 위치, 값을 여기서 바꿀 수 있어요.' }));
+    body.append(h('p', { class: 'ed-note', textContent: '맵이나 오브젝트 목록에서 오브젝트를 고르면 이름, 프리팹, 위치, 값이 여기에 나와요. 프로젝트 패널에서 파일을 고르면 그 파일이 나와요.' }));
     return;
   }
   const kind = ed.kinds[p.kind];
@@ -34,8 +38,9 @@ function objectTab(ed: Ed, body: HTMLElement): void {
   const parent = spotOf(ed.game.scene, p)?.parent;
   const kindOptions: [string, string][] = [['', '(빈 오브젝트: 묶기만 함)'], ...Object.keys(ed.kinds).map((n): [string, string] => [n, n])];
   body.append(
+    h('div', { class: 'ed-inspect-type' }, '오브젝트'),
     h('div', { class: 'ed-card-head' }, thumbnail(img, kind?.frames), h('b', { textContent: p.name || p.kind || '빈 오브젝트' }),
-      kind && h('button', { textContent: '프리팹 고치기', onclick: () => ((ed.kindName = p.kind), ed.show('kind'), ed.render()) })),
+      kind && h('button', { textContent: '프리팹 고치기', onclick: () => (ed.inspect('prefab', p.kind), ed.render()) })),
     row('이름', textInput(p.name, (v) => ed.change(() => setOrDelete(p, 'name', v.trim() || undefined)), '이름 없음'), '오브젝트 목록에서 알아보기 쉽게'),
     row('프리팹', selectInput(kindOptions, p.kind, (v) => ed.change(() => (p.kind = v))), '이 오브젝트를 어떤 프리팹으로 만들지'),
     ...(parent ? [h('p', { class: 'ed-note', textContent: `"${parent.name || parent.kind || '빈 오브젝트'}" 안에 있어요. 위치는 부모 기준이고, 부모가 움직이면 같이 움직여요.` })] : []),
@@ -83,7 +88,7 @@ export function duplicate(ed: Ed): void {
   if (!p || !spot) return;
   const copy: Placement = { ...structuredClone(p), x: p.x + ed.grid * 2 };
   ed.change(() => spot.list.splice(spot.list.indexOf(p) + 1, 0, copy));
-  ed.selected = copy;
+  ed.pick(copy);
   ed.render();
 }
 
@@ -97,12 +102,13 @@ export function removeSelected(ed: Ed): void {
 
 // ---- 프리팹: picture + blocks ----
 
-function kindTab(ed: Ed, body: HTMLElement): void {
-  const names = Object.keys(ed.kinds);
-  const name = ed.kindName && ed.kinds[ed.kindName] ? ed.kindName : ed.selected?.kind || names[0];
+function kindTab(ed: Ed, body: HTMLElement, name: string): void {
   const kind = ed.kinds[name];
-  body.append(row('고칠 프리팹', selectInput(names.map((n) => [n, n]), name, (v) => ((ed.kindName = v), ed.render()))));
-  if (!kind) return;
+  body.append(
+    typeHeader('prefab', name, 'src/kinds.json'),
+    h('div', { class: 'ed-buttons' },
+      h('button', { textContent: ed.palette === name ? '놓는 중 (Esc: 그만)' : '맵을 클릭해서 놓기', onclick: () => ((ed.palette = ed.palette === name ? null : name), ed.render()) })),
+  );
   const images = ed.game.assets.names().map((n): [string, string] => [n, n]);
 
   body.append(
@@ -135,7 +141,8 @@ function kindTab(ed: Ed, body: HTMLElement): void {
   let used = 0;
   for (const s of Object.values(ed.scenes)) eachNode(s.objects, (o) => o.kind === name && used++);
   body.append(h('div', { class: 'ed-buttons' }, confirmButton(`이 프리팹 지우기${used ? ` (놓인 ${used}개는 빈 오브젝트로)` : ''}`, () => {
-    ed.kindName = null;
+    ed.inspecting = null;
+    if (ed.palette === name) ed.palette = null;
     ed.change(() => {
       delete ed.kinds[name];
       // Nodes of this kind become empty nodes, so whatever sits inside them stays.
@@ -203,7 +210,8 @@ function renameKind(ed: Ed, from: string, to: string): void {
       if (s.rules?.collect === from) s.rules.collect = to;
     }
   });
-  ed.kindName = to;
+  ed.inspect('prefab', to);
+  if (ed.palette === from) ed.palette = to;
   ed.render();
 }
 

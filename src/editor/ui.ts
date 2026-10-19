@@ -139,21 +139,41 @@ button.ed-danger { color: #ff9a9a !important; }
 .ed-card-head small { color: #888; }
 .ed-card-head button { padding: 1px 6px !important; }
 .ed-note { color: #888; font-size: 12px; margin: 6px 0; line-height: 1.5; }
-.ed-browser { display: flex; flex: 1; min-height: 0; }
-.ed-folders { width: 120px; flex: none; border-right: 1px solid #333; padding: 6px 0; overflow: auto; }
-.ed-folder { display: flex; justify-content: space-between; padding: 4px 10px; cursor: pointer; user-select: none; }
+.ed-browser { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.ed-browser-bar { display: flex; gap: 6px; align-items: center; padding: 5px 8px; border-bottom: 1px solid #333; flex-wrap: wrap; }
+.ed-browser-bar button { padding: 2px 8px !important; }
+.ed-browser-bar button.ed-on { background: #3b4a7a; }
+.ed-crumbs { flex: 1 1 160px; min-width: 0; background: #111; border: 1px solid #444; border-radius: 3px; padding: 3px 6px; color: #888; white-space: nowrap; overflow: hidden; }
+.ed-crumb { color: #ddd; cursor: pointer; }
+.ed-crumb:hover { text-decoration: underline; }
+.ed-panel input.ed-search { width: 130px; }
+.ed-browser-body { display: flex; flex: 1; min-height: 0; }
+.ed-folders { width: 150px; flex: none; border-right: 1px solid #333; padding: 4px 0; overflow: auto; }
+.ed-folder { display: flex; align-items: center; gap: 4px; padding: 3px 8px; cursor: pointer; user-select: none; white-space: nowrap; }
 .ed-folder:hover { background: #2a2a35; }
 .ed-folder.ed-on { background: #3b4a7a; }
-.ed-folder small { color: #888; }
 .ed-browser-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.ed-panel input.ed-search { margin: 6px 8px; }
-.ed-files { flex: 1; overflow: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 4px; padding: 4px 8px; align-content: start; }
+.ed-files-wrap { flex: 1; overflow: auto; }
+.ed-icon { flex: none; display: block; }
+.ed-details { width: 100%; border-collapse: collapse; font-size: 12px; }
+.ed-details th { position: sticky; top: 0; background: #26262f; color: #aaa; font-weight: 500; text-align: left; padding: 4px 8px; cursor: pointer; user-select: none; border-bottom: 1px solid #333; }
+.ed-details th:hover { color: #fff; }
+.ed-details td { padding: 2px 8px; white-space: nowrap; color: #bbb; }
+.ed-details tr:hover td { background: #2a2a35; }
+.ed-details tr.ed-on td { background: #3b4a7a; color: #fff; }
+.ed-details tbody tr { cursor: pointer; user-select: none; }
+.ed-name { display: flex; align-items: center; gap: 6px; color: #eee; }
+.ed-thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 4px; padding: 6px 8px; }
 .ed-file { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 2px; border-radius: 4px; cursor: pointer;
   font-size: 11px; text-align: center; word-break: break-all; user-select: none; }
 .ed-file:hover { background: #2a2a35; }
 .ed-file.ed-on { background: #3b4a7a; }
-.ed-file-icon { width: 36px; height: 36px; display: grid; place-items: center; font-size: 20px; background: #2a2a35; border-radius: 3px; }
-.ed-browser-foot { display: flex; gap: 8px; align-items: center; padding: 6px 8px; border-top: 1px solid #333; flex-wrap: wrap; }
+.ed-thumb-box { position: relative; display: block; }
+.ed-badge { position: absolute; right: -4px; bottom: -4px; background: #1e1e26; border-radius: 3px; padding: 1px; }
+.ed-browser-foot { display: flex; gap: 8px; align-items: center; padding: 4px 8px; border-top: 1px solid #333; flex-wrap: wrap; color: #999; font-size: 12px; }
+.ed-inspect-type { display: flex; align-items: center; gap: 5px; color: #8fa8ff; font-size: 11px; margin: 6px 0 2px; text-transform: uppercase; }
+.ed-preview { display: flex; justify-content: center; padding: 8px; margin: 6px 0; background: repeating-conic-gradient(#2a2a35 0 25%, #222229 0 50%) 0 0 / 16px 16px; border-radius: 4px; }
+.ed-preview .ed-thumb { background: none; }
 #ed-bar button.ed-on { background: #3b4a7a; }
 .ed-help-icon { width: 20px; height: 20px; display: grid; place-items: center; border: 1px solid #555; border-radius: 50%; color: #aaa; cursor: help; font-size: 12px; }
 .ed-buttons { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }

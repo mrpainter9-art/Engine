@@ -33,7 +33,7 @@ export function renderHierarchy(ed: Ed, root: HTMLElement): void {
       title: '끌어서 다른 오브젝트 위에 놓으면 그 안으로, 사이에 놓으면 순서 바꾸기',
     }, toggle, icon, h('span', { textContent: nodeLabel(p) }), p.name && p.kind ? h('small', { textContent: p.kind }) : null);
     row.onclick = () => {
-      ed.selected = p;
+      ed.pick(p);
       ed.render();
     };
     row.addEventListener('dragstart', (e) => {
@@ -81,7 +81,7 @@ export function renderHierarchy(ed: Ed, root: HTMLElement): void {
   );
 }
 
-/** Make an empty node (choose its kind in the 오브젝트 panel). At the middle of the view, or just inside the parent. */
+/** Make an empty node (choose its prefab in the 인스펙터). At the middle of the view, or just inside the parent. */
 function addNode(ed: Ed, parent: Placement | null): void {
   const { camera } = ed.game;
   const node: Placement = parent
@@ -95,8 +95,8 @@ function addNode(ed: Ed, parent: Placement | null): void {
       ed.game.scene.objects.push(node);
     }
   });
-  ed.selected = node;
-  ed.show('object');
+  ed.pick(node);
+  ed.show('inspector');
   ed.render();
 }
 
