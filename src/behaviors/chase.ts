@@ -4,7 +4,9 @@ import type { Behavior } from '../core/world';
 // Values: target (kind name), speed, range (pixels; 0 = always chase).
 export const chase: Behavior = {
   type: 'chase',
-  update(o, { target = 'player', speed = 20, range = 0 }, _s, dt, { world }) {
+  label: '쫓아가기',
+  defaults: { target: 'player', speed: 20, range: 0 },
+  update(o, { target, speed, range }, _s, dt, { world }) {
     let best = null;
     let bestDist = Infinity;
     for (const t of world.find(target)) {
@@ -12,7 +14,6 @@ export const chase: Behavior = {
       if (d < bestDist) [best, bestDist] = [t, d];
     }
     if (!best || bestDist < 1 || (range > 0 && bestDist > range)) return;
-    o.x += ((best.x - o.x) / bestDist) * speed * dt;
-    o.y += ((best.y - o.y) / bestDist) * speed * dt;
+    world.move(o, ((best.x - o.x) / bestDist) * speed * dt, ((best.y - o.y) / bestDist) * speed * dt);
   },
 };

@@ -6,12 +6,13 @@
   <title>Engine</title>
   <style>
     html, body { margin: 0; height: 100%; overflow: hidden; }
-    body { display: flex; justify-content: center; align-items: center; }
+    #app { display: flex; height: 100%; }
+    #stage { flex: 1; min-width: 0; min-height: 0; display: flex; justify-content: center; align-items: center; overflow: hidden; }
     canvas { display: block; background: #000; cursor: none; }
   </style>
 </head>
 <body>
-  <canvas id="screen"></canvas>
+  <div id="app"><div id="stage"><canvas id="screen"></canvas></div></div>
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

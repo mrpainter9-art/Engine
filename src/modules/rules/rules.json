@@ -1,0 +1,13 @@
+{
+  "collect": "coin",
+  "timeLimit": 60,
+  "hud": "코인 {score}/{goal}",
+  "hudTime": "남은 시간 {time}",
+  "winText": "클리어!\n{time}초 남기고 모두 모았어요\n최고 기록 {best}초",
+  "loseText": "시간 초과\n코인 {score}/{goal}",
+  "recordText": "새 기록!",
+  "restartText": "스페이스를 누르면 다시 시작해요",
+  "nextText": "스페이스를 누르면 다음으로",
+  "winSound": "clear",
+  "loseSound": "lose"
+}

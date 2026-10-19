@@ -2,6 +2,12 @@
 // so which keys do what lives in controls.json and can change without touching game code.
 export type Controls = Record<string, string[]>;
 
+/** True when a key press goes to a text box or list on the page instead of the game. */
+export function isTyping(e: Event): boolean {
+  const t = e.target as HTMLElement | null;
+  return !!t && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName));
+}
+
 export class Input {
   private down = new Set<string>(); // keys held right now (KeyboardEvent.code)
   private pressed = new Set<string>(); // keys that went down during this frame
@@ -13,6 +19,7 @@ export class Input {
   constructor(private controls: Controls, canvas: HTMLCanvasElement) {
     const gameKeys = new Set(Object.values(controls).flat());
     window.addEventListener('keydown', (e) => {
+      if (isTyping(e)) return; // typing in a text box (the editor) is not playing
       if (gameKeys.has(e.code)) e.preventDefault(); // stop arrows/space from scrolling the page
       if (!e.repeat) this.pressed.add(e.code);
       this.down.add(e.code);

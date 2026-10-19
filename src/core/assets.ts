@@ -1,3 +1,4 @@
+import { loadFont } from './text';
 import { warn } from './warn';
 
 // Images: every picture inside the assets/ folder is found automatically and can be used by
@@ -10,6 +11,9 @@ const files = import.meta.glob('/assets/**/*.{png,jpg,jpeg,gif,webp}', {
 
 export interface DrawOptions {
   flipX?: boolean; // mirror left-right (e.g. a character facing the other way)
+  /** For animation strips: the picture is `frames` same-size pictures side by side; draw number `frame` (from 0). */
+  frames?: number;
+  frame?: number;
 }
 
 export class Assets {
@@ -21,8 +25,9 @@ export class Assets {
     const entries = Object.entries(files);
     let done = 0;
     onProgress(entries.length ? 0 : 1);
-    await Promise.all(
-      entries.map(async ([path, url]) => {
+    await Promise.all([
+      loadFont().catch(() => warn('글꼴을 불러오지 못했어요: assets/fonts/Galmuri9.woff2')),
+      ...entries.map(async ([path, url]) => {
         const img = new Image();
         img.src = url;
         try {
@@ -33,7 +38,12 @@ export class Assets {
         }
         onProgress(++done / entries.length);
       }),
-    );
+    ]);
+  }
+
+  /** Every picture name (for the editor's lists). */
+  names(): string[] {
+    return [...this.images.keys()].sort();
   }
 
   image(name: string): HTMLImageElement | null {
@@ -51,14 +61,32 @@ export class Assets {
       ctx.fillRect(x, y, 16, 16);
       return;
     }
+    const frames = Math.max(1, opt.frames ?? 1);
+    const w = Math.floor(img.width / frames);
+    const sx = ((opt.frame ?? 0) % frames) * w;
     if (opt.flipX) {
       ctx.save();
-      ctx.translate(x + img.width, y);
+      ctx.translate(x + w, y);
       ctx.scale(-1, 1);
-      ctx.drawImage(img, 0, 0);
+      ctx.drawImage(img, sx, 0, w, img.height, 0, 0, w, img.height);
       ctx.restore();
     } else {
-      ctx.drawImage(img, x, y);
+      ctx.drawImage(img, sx, 0, w, img.height, x, y, w, img.height);
+    }
+  }
+
+  /** Fill a w x h box by repeating an image (floors, walls, long platforms). */
+  drawTiled(ctx: CanvasRenderingContext2D, name: string, x: number, y: number, w: number, h: number): void {
+    const img = this.images.get(name);
+    if (!img) return this.draw(ctx, name, x, y);
+    x = Math.round(x);
+    y = Math.round(y);
+    for (let ty = 0; ty < h; ty += img.height) {
+      for (let tx = 0; tx < w; tx += img.width) {
+        const cw = Math.min(img.width, w - tx);
+        const ch = Math.min(img.height, h - ty);
+        ctx.drawImage(img, 0, 0, cw, ch, x + tx, y + ty, cw, ch);
+      }
     }
   }
 

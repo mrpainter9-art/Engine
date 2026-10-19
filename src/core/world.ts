@@ -13,7 +13,19 @@ export interface GameObject {
   startY: number;
   image: string;
   flipX: boolean;
+  /** Name of the animation playing now (from the kind's "animations"); "" = the kind's own picture. */
+  anim: string;
+  animTime: number;
+  /** Speed in pixels per second, used by blocks like gravity and jump. */
+  vx: number;
+  vy: number;
+  /** True while standing on something solid (set when falling is stopped). */
+  onGround: boolean;
+  /** Solid objects stop others that move with world.move (walls, floors, platforms). */
+  solid: boolean;
   blocks: BlockInstance[];
+  /** The scene line this object was made from (the editor uses it to move or change the object). */
+  source: Placement;
 }
 
 /** Values a block gets from kinds.json (and the scene), e.g. { speed: 30, distance: 60 }. */
@@ -23,6 +35,12 @@ export type Params = Record<string, any>;
 // One block = one file in src/behaviors/. Kinds are made by listing blocks in kinds.json.
 export interface Behavior {
   type: string;
+  /** Name shown in the editor. */
+  label?: string;
+  /** Every value the block reads, with the value used when kinds.json doesn't give one. */
+  defaults?: Params;
+  /** Values that must be one of a list, e.g. { axes: ['both', 'horizontal'] }. */
+  choices?: Record<string, string[]>;
   setup?(obj: GameObject, params: Params, state: Record<string, any>, game: Game): void;
   update?(obj: GameObject, params: Params, state: Record<string, any>, dt: number, game: Game): void;
 }
@@ -33,10 +51,17 @@ interface BlockInstance {
   state: Record<string, any>; // the block's own memory for this object
 }
 
-/** A kind from kinds.json: a picture plus a list of blocks with their values. */
-export interface KindDef {
+/** A picture that may be an animation strip: `frames` pictures side by side, played at `fps` per second. */
+export interface Look {
   image: string;
+  frames?: number;
+  fps?: number;
+}
+
+/** A kind from kinds.json: a picture plus a list of blocks with their values, and optional named animations. */
+export interface KindDef extends Look {
   blocks: ({ type: string } & Params)[];
+  animations?: Record<string, Look>;
 }
 
 /** One entry of a scene file: which kind, where, and optional values that override the kind's. */
@@ -52,19 +77,12 @@ export class World implements Module {
   name = 'world';
   objects: GameObject[] = [];
   private behaviors = new Map<string, Behavior>();
-  private pending: Placement[] = [];
   private game!: Game;
 
   constructor(private kinds: Record<string, KindDef>) {}
 
   addBehavior(b: Behavior): this {
     this.behaviors.set(b.type, b);
-    return this;
-  }
-
-  /** Objects to create when the game starts, usually from a scene file. */
-  load(placements: Placement[]): this {
-    this.pending.push(...placements);
     return this;
   }
 
@@ -76,10 +94,13 @@ export class World implements Module {
     }
     const { kind: name, x, y, ...overrides } = p;
     const img = this.game.assets.image(kind.image);
+    const frameWidth = img ? Math.floor(img.width / (kind.frames ?? 1)) : 16;
+    // A scene line may give w/h to make an object bigger than its picture (the picture repeats).
     const obj: GameObject = {
       kind: name, x, y, startX: x, startY: y,
-      w: img?.width ?? 16, h: img?.height ?? 16,
-      image: kind.image, flipX: false, blocks: [],
+      w: Number(p.w ?? frameWidth), h: Number(p.h ?? img?.height ?? 16),
+      image: kind.image, flipX: false, anim: '', animTime: 0,
+      vx: 0, vy: 0, onGround: false, solid: false, blocks: [], source: p,
     };
     for (const { type, ...values } of kind.blocks) {
       const behavior = this.behaviors.get(type);
@@ -88,13 +109,18 @@ export class World implements Module {
         continue;
       }
       // A scene line can change a block's value just for this one object, e.g. "distance": 90.
-      const params: Params = { ...values };
-      for (const key of Object.keys(values)) if (key in overrides) params[key] = overrides[key];
+      const params: Params = { ...behavior.defaults, ...values };
+      for (const key of Object.keys(params)) if (key in overrides) params[key] = overrides[key];
       obj.blocks.push({ behavior, params, state: {} });
     }
     this.objects.push(obj);
     for (const b of obj.blocks) b.behavior.setup?.(obj, b.params, b.state, this.game);
     return obj;
+  }
+
+  /** Every block kinds.json can use (for the editor's block list). */
+  behaviorList(): Behavior[] {
+    return [...this.behaviors.values()];
   }
 
   remove(obj: GameObject): void {
@@ -111,20 +137,76 @@ export class World implements Module {
     return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
   }
 
+  /** Is there a solid object at this point? */
+  solidAt(x: number, y: number, except?: GameObject): boolean {
+    return this.objects.some((s) => s.solid && s !== except && x >= s.x && x < s.x + s.w && y >= s.y && y < s.y + s.h);
+  }
+
+  /**
+   * Move an object, stopping it at solid objects. Moves sideways first, then up/down,
+   * so sliding along a floor or wall works. Returns which direction was blocked.
+   */
+  move(o: GameObject, dx: number, dy: number): { x: boolean; y: boolean } {
+    const hit = { x: false, y: false };
+    if (dx) {
+      o.x += dx;
+      for (const s of this.solidsTouching(o)) {
+        o.x = dx > 0 ? s.x - o.w : s.x + s.w;
+        hit.x = true;
+      }
+    }
+    if (dy) {
+      o.y += dy;
+      for (const s of this.solidsTouching(o)) {
+        o.y = dy > 0 ? s.y - o.h : s.y + s.h;
+        if (dy > 0) o.onGround = true;
+        hit.y = true;
+      }
+    }
+    return hit;
+  }
+
+  private solidsTouching(o: GameObject): GameObject[] {
+    return this.objects.filter((s) => s.solid && s !== o && this.touching(o, s));
+  }
+
   init(game: Game): void {
     this.game = game;
-    for (const p of this.pending) this.spawn(p);
-    this.pending = [];
+  }
+
+  /** A scene starts: place every object the scene file lists. */
+  enter(game: Game): void {
+    this.objects = [];
+    for (const p of game.scene.objects) this.spawn(p);
   }
 
   update(dt: number, game: Game): void {
+    if (game.paused) return;
     // Copy the list so objects can be added or removed while we go through it.
     for (const obj of [...this.objects]) {
+      const anim = obj.anim;
       for (const b of obj.blocks) b.behavior.update?.(obj, b.params, b.state, dt, game);
+      obj.animTime = obj.anim === anim ? obj.animTime + dt : 0; // a new animation starts from its first picture
     }
   }
 
   draw(ctx: CanvasRenderingContext2D, { assets }: Game): void {
-    for (const o of this.objects) assets.draw(ctx, o.image, o.x, o.y, { flipX: o.flipX });
+    for (const o of this.objects) {
+      const look = this.look(o);
+      const img = assets.image(look.image);
+      const frames = look.frames ?? 1;
+      if (img && frames === 1 && (o.w > img.width || o.h > img.height)) {
+        assets.drawTiled(ctx, look.image, o.x, o.y, o.w, o.h);
+        continue;
+      }
+      const frame = Math.floor(o.animTime * (look.fps ?? 8));
+      assets.draw(ctx, look.image, o.x, o.y, { flipX: o.flipX, frames, frame });
+    }
+  }
+
+  /** The picture to show now: the playing animation if the kind has it, otherwise the kind's own picture. */
+  private look(o: GameObject): Look {
+    const kind = this.kinds[o.kind];
+    return kind?.animations?.[o.anim] ?? kind ?? { image: o.image };
   }
 }

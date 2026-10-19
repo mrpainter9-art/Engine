@@ -1,25 +1,39 @@
 {
   "player": {
     "image": "player",
+    "animations": {
+      "walk": { "image": "player-walk", "frames": 4, "fps": 10 },
+      "jump": { "image": "player-jump" }
+    },
     "blocks": [
-      { "type": "move-with-keys", "speed": 90 },
+      { "type": "move-with-keys", "speed": 80, "axes": "horizontal" },
+      { "type": "jump", "power": 240, "sound": "jump" },
+      { "type": "gravity", "strength": 600 },
       { "type": "face-movement" },
-      { "type": "stay-in-screen" }
+      { "type": "animate-by-movement", "idle": "", "walk": "walk", "air": "jump" },
+      { "type": "stay-in-world", "bottom": false },
+      { "type": "respawn-on-fall" },
+      { "type": "camera-follow", "speed": 5 }
     ]
   },
   "coin": {
-    "image": "coin",
+    "image": "coin-spin",
+    "frames": 4,
+    "fps": 8,
     "blocks": [
       { "type": "bob", "height": 2, "speed": 3 },
-      { "type": "vanish-on-touch", "by": "player" }
+      { "type": "vanish-on-touch", "by": "player", "score": 1, "sound": "coin" }
     ]
   },
   "slime": {
-    "image": "slime",
+    "image": "slime-move",
+    "frames": 2,
+    "fps": 4,
     "blocks": [
-      { "type": "patrol", "speed": 30, "distance": 60 },
+      { "type": "patrol", "speed": 30, "distance": 0, "edges": true },
+      { "type": "gravity" },
       { "type": "face-movement" },
-      { "type": "send-back-on-touch", "target": "player" }
+      { "type": "send-back-on-touch", "target": "player", "sound": "hurt" }
     ]
   },
   "ghost": {
@@ -28,7 +42,23 @@
       { "type": "chase", "target": "player", "speed": 18, "range": 90 },
       { "type": "bob", "height": 1, "speed": 4 },
       { "type": "face-movement" },
-      { "type": "send-back-on-touch", "target": "player" }
+      { "type": "send-back-on-touch", "target": "player", "sound": "hurt" }
     ]
+  },
+  "ground": {
+    "image": "ground",
+    "blocks": [{ "type": "solid" }]
+  },
+  "platform": {
+    "image": "platform",
+    "blocks": [{ "type": "solid" }]
+  },
+  "wall": {
+    "image": "wall",
+    "blocks": [{ "type": "solid" }]
+  },
+  "tree": {
+    "image": "tree",
+    "blocks": []
   }
 }

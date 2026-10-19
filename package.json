@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "vite --open",
     "build": "vite build",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "export": "node tools/export.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3",
