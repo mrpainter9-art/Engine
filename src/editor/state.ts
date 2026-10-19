@@ -12,13 +12,14 @@ export interface Ed {
   palette: string | null;
   /** The scene line (placed object) shown in the 물건 tab. */
   selected: Placement | null;
-  tab: 'object' | 'kind' | 'scene';
   /** Kind shown in the 종류 tab. */
   kindName: string | null;
   /** Placed objects snap to this many pixels. */
   grid: number;
   /** Change the game data: remembers the old state for undo, applies fn, restarts the scene, redraws panels. */
   change(fn: () => void): void;
+  /** Bring a panel to the front (opens it if it was closed). */
+  show(panel: string): void;
   /** Redraw the panels (after selecting something). */
   render(): void;
   /** Show a short message in the top bar. */
