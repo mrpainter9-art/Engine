@@ -26,7 +26,9 @@ export function setupScreen(canvas: HTMLCanvasElement, s: ScreenSettings): Canva
     const dpr = window.devicePixelRatio || 1;
     const box = canvas.parentElement ?? document.body;
     const fit = Math.min((box.clientWidth * dpr) / s.screenWidth, (box.clientHeight * dpr) / s.screenHeight);
-    const zoom = s.scaling === 'sharp' ? Math.max(1, Math.floor(fit)) : fit;
+    // A page can ask for another way of scaling on the canvas itself (the editor uses fill to see more).
+    const scaling = (canvas.dataset.scaling as Scaling | undefined) ?? s.scaling;
+    const zoom = scaling === 'sharp' ? Math.max(1, Math.floor(fit)) : fit;
     canvas.style.width = `${(s.screenWidth * zoom) / dpr}px`;
     canvas.style.height = `${(s.screenHeight * zoom) / dpr}px`;
     canvas.dataset.zoom = zoom.toFixed(2);

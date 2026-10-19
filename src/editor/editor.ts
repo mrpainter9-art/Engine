@@ -3,10 +3,10 @@ import type { Game, Module } from '../core/module';
 import type { SceneData } from '../core/scenes';
 import type { GameObject, KindDef, Placement } from '../core/world';
 import { formatJson } from './format';
-import { duplicate, removeSelected, renderInspector } from './panels';
+import { Dock, type Layout } from './dock';
+import { duplicate, removeSelected, renderPanel } from './panels';
 import { NAME_RULE, type Ed } from './state';
 import { STYLE, h, selectInput, thumbnail } from './ui';
-import { Panels } from './windows';
 
 // The editor: place objects with the mouse, change kinds, blocks and scenes, and save to the JSON files.
 // It only exists while developing (start.bat) and in the editor demo; exported games don't include it.
@@ -32,10 +32,13 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
   const undo: string[] = [];
   let saved: Record<string, string> = {};
   let message = '';
-  let panels: Panels | null = null;
+  let dock!: Dock;
 
-  const left = h('div', { id: 'ed-left' });
-  const right = h('div', { id: 'ed-right' });
+  // One element per panel; the dock decides where each one sits.
+  const left = h('div', { class: 'ed-panel' });
+  const objectPanel = h('div', { class: 'ed-panel' });
+  const kindPanel = h('div', { class: 'ed-panel' });
+  const scenePanel = h('div', { class: 'ed-panel' });
   const bar = h('div', { id: 'ed-bar' });
 
   const ed: Ed = {
@@ -45,7 +48,6 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
     behaviors: [],
     palette: null,
     selected: null,
-    tab: 'object',
     kindName: null,
     grid: 4,
     change(fn) {
@@ -55,6 +57,7 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
       restartScene();
       render();
     },
+    show: (id) => dock.show(id),
     render: () => render(),
     say(text) {
       message = text;
@@ -118,9 +121,17 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
     document.body.classList.toggle('ed-editing', on);
     ed.palette = null;
     drag = null;
+    dock.showOnly(on ? null : 'view');
+    setScaling();
     if (on) restartScene();
     else game.goTo(game.sceneName); // play from the start, camera follows the player again
     render();
+  }
+
+  /** While editing, the scene view uses every pixel it has (fill); playing uses the game's own setting. */
+  function setScaling(): void {
+    if (game.editing) canvas.dataset.scaling = 'fill';
+    else delete canvas.dataset.scaling;
   }
 
   function goToScene(name: string): void {
@@ -185,7 +196,6 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
     const placement: Placement = { kind, x: snap(p.x - w / 2), y: snap(p.y - ht / 2) };
     ed.change(() => game.scene.objects.push(placement));
     ed.selected = placement;
-    ed.tab = 'object';
     render();
   }
 
@@ -213,7 +223,6 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
       const hit = pick(p);
       ed.selected = hit?.source ?? null;
       if (hit) {
-        ed.tab = 'object';
         drag = { obj: hit, dx: p.x - hit.x, dy: p.y - hit.y, before: snapshot(), moved: false };
       }
       render();
@@ -287,7 +296,9 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
   function render(): void {
     renderBar();
     renderLeft();
-    renderInspector(ed, right);
+    renderPanel(ed, objectPanel, 'object');
+    renderPanel(ed, kindPanel, 'kind');
+    renderPanel(ed, scenePanel, 'scene');
   }
 
   function renderBar(): void {
@@ -306,7 +317,9 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
       game.editing && nameBox,
       game.editing && h('button', { textContent: '↶ 되돌리기', title: 'Ctrl+Z', onclick: () => { const last = undo.pop(); if (last) restore(last); } }),
       h('button', { textContent: canSave ? '저장 (Ctrl+S)' : '저장 (체험판은 꺼짐)', onclick: save }),
-      game.editing && h('button', { textContent: '패널 제자리로', title: '옮기거나 크기를 바꾼 패널을 처음 위치로', onclick: () => panels?.reset() }),
+      game.editing && dock.closed().length > 0 &&
+        selectInput([['', '+ 패널 열기'], ...dock.closed().map((p): [string, string] => [p.id, p.title])], '', (id) => id && dock.show(id)),
+      game.editing && h('button', { textContent: '패널 배치 처음대로', title: '나누고 합친 패널을 처음 배치로', onclick: () => dock.reset() }),
       h('span', {
         class: `ed-status ${changed ? 'ed-unsaved' : ''}`,
         textContent: message || (changed ? `저장 안 된 파일 ${changed}개` : '모두 저장됨'),
@@ -326,7 +339,7 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
       ed.change(() => (kinds[name] = { image: game.assets.names()[0] ?? '', blocks: [] }));
       ed.palette = name;
       ed.kindName = name;
-      ed.tab = 'kind';
+      dock.show('kind');
       render();
     });
     const grid = selectInput([['1', '1 (자유롭게)'], ['4', '4'], ['8', '8'], ['16', '16']], String(ed.grid), (v) => (ed.grid = Number(v)));
@@ -339,7 +352,7 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
       newKind,
       h('label', { class: 'ed-row', style: 'margin:4px 10px' }, h('span', { textContent: '격자 칸', style: 'width:60px' }), grid),
       h('div', { class: 'ed-help', innerHTML:
-        '클릭: 고르기 / 끌기: 옮기기<br>Delete: 지우기 · Ctrl+D: 복제<br>방향키 · 휠 · 오른쪽 끌기: 맵 이동<br>Esc: 고르기 도구로 · Ctrl+Z: 되돌리기<br>Ctrl+S: 파일에 저장<br>패널: 제목 끌기로 옮기기, 오른쪽 아래 모서리로 크기' }),
+        '클릭: 고르기 / 끌기: 옮기기<br>Delete: 지우기 · Ctrl+D: 복제<br>방향키 · 휠 · 오른쪽 끌기: 맵 이동<br>Esc: 고르기 도구로 · Ctrl+Z: 되돌리기<br>Ctrl+S: 파일에 저장<br>패널: 탭을 끌어 가장자리에 놓으면 나누기,<br>가운데에 놓으면 합치기. 경계선 끌기로 크기' }),
     );
   }
 
@@ -353,15 +366,19 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
       ed.behaviors = g.world.behaviorList();
       canvas = document.getElementById('screen') as HTMLCanvasElement;
       document.head.append(h('style', { textContent: STYLE }));
-      // The scene fills the window under the top bar; the panels float over it and can be moved and resized.
+      // Under the top bar the window is split into panels around the scene view (see dock.ts).
       const app = document.getElementById('app')!;
       const stage = document.getElementById('stage')!;
-      const area = h('div', { id: 'ed-area' });
+      const area = h('div', { id: 'ed-dock' });
       app.replaceChildren(h('div', { id: 'ed-center' }, bar, area));
-      area.append(stage);
-      panels = new Panels(area);
-      panels.add({ id: 'kinds', title: '놓을 물건', content: left, place: (_w, ah) => ({ x: 8, y: 8, w: 200, h: Math.min(560, ah - 16) }) });
-      panels.add({ id: 'inspector', title: '고치기', content: right, place: (aw, ah) => ({ x: aw - 316, y: 8, w: 308, h: Math.min(680, ah - 16) }) });
+      dock = new Dock(area, defaultLayout);
+      dock.add({ id: 'view', title: '장면 보기', el: stage, closable: false });
+      dock.add({ id: 'palette', title: '놓을 물건', el: left });
+      dock.add({ id: 'object', title: '물건', el: objectPanel });
+      dock.add({ id: 'kind', title: '종류', el: kindPanel });
+      dock.add({ id: 'scene', title: '장면', el: scenePanel });
+      dock.load();
+      dock.onChange = renderBar;
       saved = files();
       setupMouse();
       // After a page reload, come back to the same scene and mode.
@@ -372,6 +389,8 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
           g.editing = true;
           document.body.classList.add('ed-editing');
         }
+        if (!g.editing) dock.showOnly('view');
+        setScaling();
         if (memory.scene && scenes[memory.scene]) g.goTo(memory.scene);
       } catch {
         /* start normally */
@@ -416,6 +435,19 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
       }
       ctx.restore();
     },
+  };
+}
+
+/** Where the panels start: things to place on the left, the scene in the middle, settings on the right. */
+function defaultLayout(): Layout {
+  return {
+    split: 'row',
+    sizes: [17, 58, 25],
+    items: [
+      { tabs: ['palette'], active: 0 },
+      { tabs: ['view'], active: 0 },
+      { split: 'col', sizes: [55, 45], items: [{ tabs: ['object'], active: 0 }, { tabs: ['kind', 'scene'], active: 0 }] },
+    ],
   };
 }
 

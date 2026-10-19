@@ -3,7 +3,7 @@ import type { Behavior, KindDef, Look, Params, Placement } from '../core/world';
 import { NAME_RULE, type Ed } from './state';
 import { checkInput, confirmButton, h, numberInput, row, selectInput, textInput, thumbnail } from './ui';
 
-// The right-hand panel: three tabs to change the selected object, its kind, or the whole scene.
+// Three panels: the selected object, its kind, and the whole scene. Each can sit anywhere in the layout.
 
 const PARAM_NAMES: Record<string, string> = {
   speed: '빠르기', distance: '거리', edges: '발판 끝에서 돌기', height: '높이', target: '대상 종류', range: '이 거리 안이면',
@@ -11,17 +11,13 @@ const PARAM_NAMES: Record<string, string> = {
   key: '키 (동작 이름)', axes: '방향', bottom: '아래도 막기', idle: '서 있을 때', walk: '걸을 때', air: '공중에서',
 };
 
-export function renderInspector(ed: Ed, root: HTMLElement): void {
-  const tabs: [Ed['tab'], string][] = [['object', '물건'], ['kind', '종류'], ['scene', '장면']];
+/** Fill a panel: clear it and let one of the tab builders below add its rows. */
+export function renderPanel(ed: Ed, root: HTMLElement, which: 'object' | 'kind' | 'scene'): void {
   const body = h('div', { class: 'ed-body' });
-  root.replaceChildren(
-    h('div', { class: 'ed-tabs' }, ...tabs.map(([id, text]) =>
-      h('button', { class: ed.tab === id ? 'ed-on' : '', textContent: text, onclick: () => ((ed.tab = id), ed.render()) }))),
-    body,
-  );
-  if (ed.tab === 'object') objectTab(ed, body);
-  if (ed.tab === 'kind') kindTab(ed, body);
-  if (ed.tab === 'scene') sceneTab(ed, body);
+  root.replaceChildren(body);
+  if (which === 'object') objectTab(ed, body);
+  if (which === 'kind') kindTab(ed, body);
+  if (which === 'scene') sceneTab(ed, body);
 }
 
 // ---- 물건: one placed object ----
@@ -36,7 +32,7 @@ function objectTab(ed: Ed, body: HTMLElement): void {
   const img = kind ? ed.game.assets.image(kind.image) : null;
   body.append(
     h('div', { class: 'ed-card-head' }, thumbnail(img, kind?.frames), h('b', { textContent: p.kind }),
-      h('button', { textContent: '종류 고치기', onclick: () => ((ed.kindName = p.kind), (ed.tab = 'kind'), ed.render()) })),
+      h('button', { textContent: '종류 고치기', onclick: () => ((ed.kindName = p.kind), ed.show('kind'), ed.render()) })),
     row('x (가로)', numberInput(p.x, (v) => ed.change(() => (p.x = v ?? 0)))),
     row('y (세로)', numberInput(p.y, (v) => ed.change(() => (p.y = v ?? 0)))),
     row('w (넓이)', numberInput(p.w as number | undefined, (v) => ed.change(() => setOrDelete(p, 'w', v)), '그림 크기'), '그림보다 크게 놓으면 그림이 반복돼요'),
