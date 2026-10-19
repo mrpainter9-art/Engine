@@ -17,6 +17,7 @@ The owner is a game designer with no coding background who wants to learn how an
 
 ## Layout
 - `src/main.ts` registers modules. `src/core/` engine loop + `Module` interface. `src/modules/<name>/` one feature each, values in a JSON next to it.
+  `src/kinds/<kind>/` one object kind each (registered with `world.addKind`). `src/scenes/*.json` place objects by kind and position.
 - Run: `start.bat` / `start.sh` (or `npm run dev`). Before finishing: `npm run check`.
 
 ## Structure rules

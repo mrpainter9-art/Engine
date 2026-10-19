@@ -1,5 +1,6 @@
 import type { Assets } from './assets';
 import type { Input } from './input';
+import type { World } from './world';
 
 // What the core offers to every module. New engine services get added here.
 export interface Game {
@@ -7,6 +8,7 @@ export interface Game {
   height: number;
   input: Input;
   assets: Assets;
+  world: World;
 }
 
 // A module is one feature of the engine. It can hook into three moments:
