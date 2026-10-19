@@ -1,7 +1,7 @@
 import type { Behavior, KindDef, Look, Params, Placement } from '../core/world';
 import { renderAsset, typeHeader } from './assetview';
 import { NAME_RULE, type Ed } from './state';
-import { eachNode, removeNode, spotOf } from './tree';
+import { eachNode, outermost, removeNode, spotOf } from './tree';
 import { checkInput, confirmButton, h, numberInput, row, selectInput, textInput, thumbnail } from './ui';
 
 // Two panels: the 인스펙터 (the selected object, or the prefab / file picked in the 프로젝트 panel, like Unity)
@@ -30,6 +30,7 @@ export function renderPanel(ed: Ed, root: HTMLElement, which: 'inspector' | 'sce
 // ---- 오브젝트: one node of the scene ----
 
 function objectTab(ed: Ed, body: HTMLElement): void {
+  if (ed.selection.length > 1) return manyTab(ed, body);
   const p = ed.selected;
   if (!p) {
     body.append(h('p', { class: 'ed-note', textContent: '맵이나 오브젝트 목록에서 오브젝트를 고르면 이름, 프리팹, 위치, 값이 여기에 나와요. 프로젝트 패널에서 파일을 고르면 그 파일이 나와요.' }));
@@ -66,6 +67,19 @@ function objectTab(ed: Ed, body: HTMLElement): void {
     h('button', { class: 'ed-danger', textContent: '지우기 (Delete)', onclick: () => removeSelected(ed) })));
 }
 
+/** Several objects picked at once: what they are, and what can be done to all of them. */
+function manyTab(ed: Ed, body: HTMLElement): void {
+  body.append(
+    h('div', { class: 'ed-inspect-type' }, '오브젝트'),
+    h('div', { class: 'ed-card-head' }, h('b', { textContent: `오브젝트 ${ed.selection.length}개를 골랐어요` })),
+    h('p', { class: 'ed-note', textContent: ed.selection.map((p) => p.name || p.kind || '빈 오브젝트').join(', ') }),
+    h('p', { class: 'ed-note', textContent: '맵에서 하나를 끌면 모두 같이 움직여요. Ctrl이나 Shift를 누른 채 클릭하면 더 고르거나 빼요.' }),
+    h('div', { class: 'ed-buttons' },
+      h('button', { textContent: '모두 복제 (Ctrl+D)', onclick: () => duplicate(ed) }),
+      h('button', { class: 'ed-danger', textContent: '모두 지우기 (Delete)', onclick: () => removeSelected(ed) })),
+  );
+}
+
 /** Every value the kind's blocks use, as the kind sets it (or the block's usual value). */
 function kindValues(ed: Ed, kind: KindDef): Params {
   const values: Params = {};
@@ -98,24 +112,35 @@ function overrideInput(ed: Ed, p: Placement, key: string, kindValue: unknown, ch
   return textInput(value as string | undefined, (v) => set(v === '' ? undefined : v), String(kindValue));
 }
 
-/** Copy the selected node (with everything inside it) right after it, a little to the right. */
+/** Copy the selected objects (with everything inside them), each right after itself, a little to the right. */
 export function duplicate(ed: Ed): void {
-  const p = ed.selected;
-  const spot = p && spotOf(ed.game.scene, p);
-  if (!p || !spot) return;
-  const copy: Placement = { ...structuredClone(p), x: p.x + ed.grid * 2 };
-  ed.change(() => spot.list.splice(spot.list.indexOf(p) + 1, 0, copy));
-  ed.pick(copy);
+  const scene = ed.game.scene;
+  const originals = topSelected(ed);
+  if (!originals.length) return;
+  const copies: Placement[] = [];
+  ed.change(() => {
+    for (const p of originals) {
+      const spot = spotOf(scene, p);
+      if (!spot) continue;
+      const copy: Placement = { ...structuredClone(p), x: p.x + ed.grid * 2 };
+      spot.list.splice(spot.list.indexOf(p) + 1, 0, copy);
+      copies.push(copy);
+    }
+  });
+  ed.pick(null);
+  for (const c of copies) ed.toggle(c);
   ed.render();
 }
 
-/** Delete the selected node and everything inside it. */
+/** Delete the selected objects and everything inside them. */
 export function removeSelected(ed: Ed): void {
-  const p = ed.selected;
-  if (!p) return;
-  ed.selected = null;
-  ed.change(() => removeNode(ed.game.scene, p));
+  const doomed = topSelected(ed);
+  if (!doomed.length) return;
+  ed.pick(null);
+  ed.change(() => doomed.forEach((p) => removeNode(ed.game.scene, p)));
 }
+
+const topSelected = (ed: Ed) => outermost(ed.game.scene, ed.selection);
 
 // ---- 프리팹: picture + blocks ----
 
