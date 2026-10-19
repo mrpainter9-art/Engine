@@ -1,35 +1,32 @@
 # AGENTS.md
 
-Map of this repo for coding agents. Read this first, then open only the files the task needs.
-The owner is a game designer with no coding background: explain results in plain Korean.
+Map of this repo for coding agents. Read this first, then `docs/PLAN.md`.
 
 ## What it is
-A small 2D pixel-art engine (TypeScript, Canvas 2D) plus a Godot-style editor that runs in the browser,
-served by a local Node server that reads/writes the game project folder, runs git and starts Claude Code / Codex.
+A small 2D pixel-art engine (TypeScript, Canvas 2D, runs in the browser), rebuilt from scratch one step at a time.
+The owner is a game designer with no coding background who wants to learn how an engine works while building it.
+
+## How we work
+- One step = one concept = one visible result. Follow the step order in `docs/PLAN.md`; do not jump ahead.
+- Before a step: agree on a one-line "done when" check. After it: explain in plain Korean what was built and why,
+  and point to one number the owner can change to see the effect.
+- Explain from the player's/designer's side: what you see, what you can change, what it is for. Skip code internals unless asked.
+- Give a playable link for each step (an Artifact page) so the owner can try it without installing anything, with sliders for the values the step adds.
+- Every step reply ends with "확인 방법": exactly what to open, click or change, and what should appear.
+- Mark the step done in `docs/PLAN.md` and record any design decision there.
 
 ## Layout
-- `src/engine/` runtime, shared by editor and game. No DOM outside renderer/textures/input/game.
-  - `node.ts` Node base: tree ops, props via static `props: PropDef[]`. `registry.ts` registers every node class.
-  - `nodes/` node types (node2d, visual = Sprite2D/ColorRect/Label, scene-nodes = Parallax2D/Camera2D/CanvasModulate/CanvasLayer).
-  - `scene.ts` *.scene.json read/write (only non-default props; compact printer). `renderer.ts` draw + transforms + parallax.
-  - `game.ts` runs a scene: scripts, ready/process/input, camera view. `math.ts` Vec2, Mat2D.
-- `src/player/play.ts` game page (play.html): editor's play window and the web export.
-- `src/editor/` editor UI, plain TS + `h()` from `ui.ts` (no framework). `state.ts` = store, events (`on`/`emit`), undo (`exec`), scene ops.
-  - `main.ts` layout, menus, shortcuts. `viewport.ts` 2D view. `docks/` scene tree, inspector, filesystem, add-node. `panels/` output, git, ai.
-  - `script-editor.ts` CodeMirror. `style.css` all styles (variables at top).
-- `server/` Node, no runtime deps. `server.mjs` routes POST `/api/<name>` (JSON) and serves `/project/*`.
-  - `fsapi.mjs` files (always through `paths.mjs` resolveInside), `gitapi.mjs`, `aiapi.mjs` (+ `ai-context.md` sent with every AI prompt), `export.mjs`.
-- `examples/train-window/` sample project. `tests/` vitest (`*.test.ts|mjs`) and Playwright (`e2e/`).
+- `src/main.ts` registers modules. `src/core/` engine loop + `Module` interface. `src/modules/<name>/` one feature each, values in a JSON next to it.
+- Run: `start.bat` / `start.sh` (or `npm run dev`). Before finishing: `npm run check`.
 
-## Adding things
-- New node type: class in `src/engine/nodes/`, `registerNode` in `registry.ts`, draw in `renderer.ts` drawSelf, one line in `server/ai-context.md`. The inspector builds itself from `props`.
-- New prop editor type: `PropType` in `node.ts`, case in `docks/inspector.ts` editor().
-- New server call: function in the matching `server/*api.mjs`, entry in `API` in `server.mjs`, call with `api('name', body)`.
-- Every editor change to a scene goes through `exec()` in `state.ts` so undo works.
+## Structure rules
+- Tiny core: runs the loop and registers modules, nothing else.
+- One feature = one folder = one module. Removing a feature = removing its registration line.
+- Modules do not import each other; they talk through the core.
+- No target game and no copying another engine's design (the old train game and Godot are not references).
+- Tunable values (routes, speeds, colors) live in data files (JSON), not code.
+- Keep files small and single-purpose; no new dependencies without need.
 
 ## Rules
-- Keep files small and single-purpose; no new dependencies without need.
-- The server only listens on 127.0.0.1 and checks the `x-engine` header and Origin; keep that.
-- Project paths are `res://...`; never touch files outside the project folder.
-- UI text is Korean; code and comments English.
-- Before finishing: `npm run check` and, for UI changes, `npm run test:e2e`.
+- UI text, PR titles/descriptions and commit messages are Korean; code and comments English.
+- The previous attempt (editor v1) is in git history at commit `0fb485f`; reuse ideas from it only when a step needs them.
