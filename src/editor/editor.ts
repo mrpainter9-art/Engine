@@ -3,12 +3,13 @@ import type { Game, Module } from '../core/module';
 import type { SceneData } from '../core/scenes';
 import type { GameObject, KindDef, Placement } from '../core/world';
 import { formatJson } from './format';
+import { prefabFor, renderBrowser } from './browser';
 import { Dock, type Layout } from './dock';
 import { renderHierarchy } from './hierarchy';
 import { duplicate, removeSelected, renderPanel } from './panels';
 import { NAME_RULE, type Ed } from './state';
 import { eachNode } from './tree';
-import { STYLE, h, selectInput, thumbnail } from './ui';
+import { STYLE, h, selectInput } from './ui';
 
 // The editor: place objects with the mouse, change kinds, blocks and scenes, and save to the JSON files.
 // It only exists while developing (start.bat) and in the editor demo; exported games don't include it.
@@ -37,7 +38,7 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
   let dock!: Dock;
 
   // One element per panel; the dock decides where each one sits.
-  const left = h('div', { class: 'ed-panel' });
+  const projectPanel = h('div', { class: 'ed-panel' });
   const objectPanel = h('div', { class: 'ed-panel' });
   const treePanel = h('div', { class: 'ed-panel' });
   const kindPanel = h('div', { class: 'ed-panel' });
@@ -53,6 +54,7 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
     selected: null,
     kindName: null,
     grid: 4,
+    dragging: null,
     change(fn) {
       undo.push(snapshot());
       if (undo.length > 100) undo.shift();
@@ -61,6 +63,8 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
       render();
     },
     show: (id) => dock.show(id),
+    openScene: (name) => goToScene(name),
+    newScene: (name) => newScene(name),
     render: () => render(),
     say(text) {
       message = text;
@@ -194,9 +198,14 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
     return img ? { w: Math.floor(img.width / (def.frames ?? 1)), h: img.height } : { w: 16, h: 16 };
   }
 
-  function place(kind: string, p: { x: number; y: number }): void {
+  /** A new scene line for a kind, centered on a map point. */
+  function spot(kind: string, p: { x: number; y: number }): Placement {
     const { w, h: ht } = size(kind);
-    const placement: Placement = { kind, x: snap(p.x - w / 2), y: snap(p.y - ht / 2) };
+    return { kind, x: snap(p.x - w / 2), y: snap(p.y - ht / 2) };
+  }
+
+  function place(kind: string, p: { x: number; y: number }): void {
+    const placement = spot(kind, p);
     ed.change(() => game.scene.objects.push(placement));
     ed.selected = placement;
     render();
@@ -264,6 +273,28 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
       pan = null;
     });
     canvas.addEventListener('pointerleave', () => (mouse = null));
+    // Prefabs and pictures dragged from the 프로젝트 panel.
+    canvas.addEventListener('dragover', (e) => {
+      if (!game.editing || !ed.dragging) return;
+      e.preventDefault();
+      mouse = toWorld(e);
+    });
+    canvas.addEventListener('dragleave', () => (mouse = null));
+    canvas.addEventListener('drop', (e) => {
+      const item = ed.dragging;
+      ed.dragging = null;
+      if (!game.editing || !item) return;
+      e.preventDefault();
+      const p = toWorld(e);
+      if (item.type === 'prefab') return place(item.name, p);
+      let placement: Placement | null = null;
+      ed.change(() => {
+        const kind = prefabFor(kinds, item.name);
+        game.scene.objects.push((placement = spot(kind, p)));
+      });
+      ed.selected = placement;
+      render();
+    });
     canvas.addEventListener('wheel', (e) => {
       if (!game.editing) return;
       e.preventDefault();
@@ -304,7 +335,7 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
 
   function render(): void {
     renderBar();
-    renderLeft();
+    renderBrowser(ed, projectPanel);
     renderHierarchy(ed, treePanel);
     renderPanel(ed, objectPanel, 'object');
     renderPanel(ed, kindPanel, 'kind');
@@ -313,8 +344,8 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
 
   function renderBar(): void {
     const changed = unsaved().length;
-    const nameBox = h('input', { type: 'text', placeholder: '새 장면 이름', style: 'width:110px' });
-    nameBox.addEventListener('change', () => newScene(nameBox.value.trim()));
+    const grid = selectInput([['1', '격자 1 (자유롭게)'], ['4', '격자 4'], ['8', '격자 8'], ['16', '격자 16']], String(ed.grid), (v) => (ed.grid = Number(v)));
+    grid.title = '놓거나 옮길 때 몇 픽셀 단위로 맞출지';
     const items: (Node | false)[] = [
       h('button', {
         class: 'ed-primary',
@@ -324,12 +355,19 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
       }),
       h('span', { textContent: '장면' }),
       selectInput(Object.keys(scenes).map((n) => [n, n]), game.sceneName, goToScene),
-      game.editing && nameBox,
+      game.editing && h('button', {
+        class: ed.palette ? '' : 'ed-on',
+        textContent: ed.palette ? `놓는 중: ${ed.palette} (Esc: 그만)` : '↖ 고르기 · 옮기기',
+        title: '프로젝트 패널에서 프리팹을 클릭하면 놓기 도구가 돼요',
+        onclick: () => ((ed.palette = null), render()),
+      }),
+      game.editing && grid,
       game.editing && h('button', { textContent: '↶ 되돌리기', title: 'Ctrl+Z', onclick: () => { const last = undo.pop(); if (last) restore(last); } }),
       h('button', { textContent: canSave ? '저장 (Ctrl+S)' : '저장 (체험판은 꺼짐)', onclick: save }),
       game.editing && dock.closed().length > 0 &&
         selectInput([['', '+ 패널 열기'], ...dock.closed().map((p): [string, string] => [p.id, p.title])], '', (id) => id && dock.show(id)),
       game.editing && h('button', { textContent: '패널 배치 처음대로', title: '나누고 합친 패널을 처음 배치로', onclick: () => dock.reset() }),
+      game.editing && h('span', { class: 'ed-help-icon', textContent: '?', title: HELP }),
       h('span', {
         class: `ed-status ${changed ? 'ed-unsaved' : ''}`,
         textContent: message || (changed ? `저장 안 된 파일 ${changed}개` : '모두 저장됨'),
@@ -337,33 +375,6 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
     ];
     bar.replaceChildren(...items.filter((i): i is Node => i !== false));
     message = '';
-  }
-
-  function renderLeft(): void {
-    const tool = (on: boolean, onclick: () => void, ...children: (Node | string)[]) =>
-      h('div', { class: `ed-tool ${on ? 'ed-on' : ''}`, onclick }, ...children);
-    const newKind = h('input', { type: 'text', placeholder: '새 프리팹 이름 + Enter', style: 'margin:6px 10px' });
-    newKind.addEventListener('change', () => {
-      const name = newKind.value.trim();
-      if (!NAME_RULE.test(name) || kinds[name]) return ed.say('프리팹 이름은 영어, 숫자, -, _ 만 쓰고 겹치지 않게 해 주세요.');
-      ed.change(() => (kinds[name] = { image: game.assets.names()[0] ?? '', blocks: [] }));
-      ed.palette = name;
-      ed.kindName = name;
-      dock.show('kind');
-      render();
-    });
-    const grid = selectInput([['1', '1 (자유롭게)'], ['4', '4'], ['8', '8'], ['16', '16']], String(ed.grid), (v) => (ed.grid = Number(v)));
-    left.replaceChildren(
-      h('h3', { textContent: '도구' }),
-      tool(!ed.palette, () => ((ed.palette = null), render()), h('span', { textContent: '↖', style: 'width:28px;text-align:center;font-size:18px' }), '고르기 · 옮기기'),
-      h('h3', { textContent: '놓을 프리팹 (고르고 맵 클릭)' }),
-      ...Object.entries(kinds).map(([name, def]) =>
-        tool(ed.palette === name, () => ((ed.palette = name), (ed.kindName = name), render()), thumbnail(game.assets.image(def.image), def.frames), name)),
-      newKind,
-      h('label', { class: 'ed-row', style: 'margin:4px 10px' }, h('span', { textContent: '격자 칸', style: 'width:60px' }), grid),
-      h('div', { class: 'ed-help', innerHTML:
-        '클릭: 고르기 / 끌기: 옮기기<br>Delete: 지우기 · Ctrl+D: 복제<br>방향키 · 휠 · 오른쪽 끌기: 맵 이동<br>Esc: 고르기 도구로 · Ctrl+Z: 되돌리기<br>Ctrl+S: 파일에 저장<br>패널: 탭을 끌어 가장자리에 놓으면 나누기,<br>가운데에 놓으면 합치기. 경계선 끌기로 크기' }),
-    );
   }
 
   // ---- the module ----
@@ -383,7 +394,7 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
       app.replaceChildren(h('div', { id: 'ed-center' }, bar, area));
       dock = new Dock(area, defaultLayout);
       dock.add({ id: 'view', title: '장면 보기', el: stage, closable: false });
-      dock.add({ id: 'palette', title: '놓을 프리팹', el: left });
+      dock.add({ id: 'project', title: '프로젝트', el: projectPanel });
       dock.add({ id: 'tree', title: '오브젝트 목록', el: treePanel });
       dock.add({ id: 'object', title: '오브젝트', el: objectPanel });
       dock.add({ id: 'kind', title: '프리팹', el: kindPanel });
@@ -454,26 +465,44 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
       const sel = g.world.objects.find((o) => o.source === ed.selected);
       if (sel) outline(ctx, sel, '#f2c14e');
       // Where a new object would go.
-      if (ed.palette && mouse && kinds[ed.palette]) {
-        const def = kinds[ed.palette];
-        const { w, h: ht } = size(ed.palette);
+      const ghost = ed.dragging?.type === 'image' ? { image: ed.dragging.name, frames: 1 }
+        : kinds[ed.dragging?.name ?? ed.palette ?? ''];
+      if (ghost && mouse) {
+        const img = g.assets.image(ghost.image);
+        const w = img ? Math.floor(img.width / (ghost.frames ?? 1)) : 16;
+        const ht = img?.height ?? 16;
         ctx.globalAlpha = 0.6;
-        g.assets.draw(ctx, def.image, snap(mouse.x - w / 2), snap(mouse.y - ht / 2), { frames: def.frames ?? 1 });
+        g.assets.draw(ctx, ghost.image, snap(mouse.x - w / 2), snap(mouse.y - ht / 2), { frames: ghost.frames ?? 1 });
       }
       ctx.restore();
     },
   };
 }
 
-/** Where the panels start: things to place on the left, the scene in the middle, settings on the right. */
+const HELP = [
+  '클릭: 고르기 / 끌기: 옮기기',
+  'Delete: 지우기 · Ctrl+D: 복제 · Ctrl+Z: 되돌리기 · Ctrl+S: 저장',
+  '방향키 · 휠 · 오른쪽 끌기: 맵 이동 · Esc: 고르기 도구로',
+  '프로젝트 패널: 프리팹이나 그림을 장면 보기로 끌어서 놓기',
+  '패널: 탭을 끌어 가장자리에 놓으면 나누기, 가운데에 놓으면 합치기',
+].join('\n');
+
+/** Where the panels start, like Unity: object list left, scene middle, settings right, project files along the bottom. */
 function defaultLayout(): Layout {
   return {
-    split: 'row',
-    sizes: [17, 58, 25],
+    split: 'col',
+    sizes: [68, 32],
     items: [
-      { split: 'col', sizes: [50, 50], items: [{ tabs: ['tree'], active: 0 }, { tabs: ['palette'], active: 0 }] },
-      { tabs: ['view'], active: 0 },
-      { split: 'col', sizes: [55, 45], items: [{ tabs: ['object'], active: 0 }, { tabs: ['kind', 'scene'], active: 0 }] },
+      {
+        split: 'row',
+        sizes: [17, 58, 25],
+        items: [
+          { tabs: ['tree'], active: 0 },
+          { tabs: ['view'], active: 0 },
+          { split: 'col', sizes: [55, 45], items: [{ tabs: ['object'], active: 0 }, { tabs: ['kind', 'scene'], active: 0 }] },
+        ],
+      },
+      { tabs: ['project'], active: 0 },
     ],
   };
 }

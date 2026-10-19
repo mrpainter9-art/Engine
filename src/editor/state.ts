@@ -14,6 +14,8 @@ export interface Ed {
   selected: Placement | null;
   /** Kind shown in the 프리팹 tab. */
   kindName: string | null;
+  /** A prefab or picture being dragged from the 프로젝트 panel (shown on the map until dropped). */
+  dragging: { type: 'prefab' | 'image'; name: string } | null;
   /** Placed objects snap to this many pixels. */
   grid: number;
   /** Change the game data: remembers the old state for undo, applies fn, restarts the scene, redraws panels. */
@@ -22,6 +24,10 @@ export interface Ed {
   show(panel: string): void;
   /** Redraw the panels (after selecting something). */
   render(): void;
+  /** Open another scene in the scene view. */
+  openScene(name: string): void;
+  /** Make a new scene file and open it. */
+  newScene(name: string): void;
   /** Show a short message in the top bar. */
   say(text: string): void;
 }
