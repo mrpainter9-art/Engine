@@ -101,7 +101,7 @@ export class World implements Module {
   /** Make an object from a scene node (and its children). parent = the object it sits under. */
   spawn(p: Placement, parent: GameObject | null = null): GameObject {
     const kind = p.kind ? this.kinds[p.kind] : undefined;
-    if (p.kind && !kind) warn(`장면에 "${p.kind}"라는 종류가 있는데 kinds.json에 없어요.`);
+    if (p.kind && !kind) warn(`장면에 "${p.kind}"라는 프리팹이 있는데 kinds.json에 없어요.`);
     const { kind: name, ...overrides } = p;
     const x = p.x + (parent?.startX ?? 0);
     const y = p.y + (parent?.startY ?? 0);
@@ -117,7 +117,7 @@ export class World implements Module {
     for (const { type, ...values } of kind?.blocks ?? []) {
       const behavior = this.behaviors.get(type);
       if (!behavior) {
-        warn(`"${name}"에 쓰인 "${type}" 블록이 없어요. 이름이 맞는지, main.ts에 등록됐는지 확인해 주세요.`);
+        warn(`"${name}"에 쓰인 "${type}" 컴포넌트가 없어요. 이름이 맞는지, main.ts에 등록됐는지 확인해 주세요.`);
         continue;
       }
       // A scene line can change a block's value just for this one object, e.g. "distance": 90.

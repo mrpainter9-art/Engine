@@ -4,7 +4,7 @@
 Claude와 함께 한 단계씩, 원리를 배우면서 처음부터 다시 만들고 있어요.
 
 - 계획과 단계별 진행: [docs/PLAN.md](docs/PLAN.md)
-- 행동 블록: [docs/BLOCKS.md](docs/BLOCKS.md) · 장면 파일: [docs/SCENES.md](docs/SCENES.md) · 편집 도구: [docs/EDITOR.md](docs/EDITOR.md)
+- 컴포넌트: [docs/BLOCKS.md](docs/BLOCKS.md) · 장면 파일: [docs/SCENES.md](docs/SCENES.md) · 편집 도구: [docs/EDITOR.md](docs/EDITOR.md)
 
 ## 처음 한 번만 준비하기
 1. [Node.js](https://nodejs.org/) LTS를 설치해요.
@@ -17,7 +17,7 @@ Claude와 함께 한 단계씩, 원리를 배우면서 처음부터 다시 만�
 
 ## 화면에서 고치기 (편집 도구)
 `start.bat`으로 연 화면 위쪽의 **✎ 편집하기**를 누르면 게임이 멈추고, 장면 위에 패널이 떠요(끌어서 옮기고 크기 조절).
-**놓을 물건**에서 고르고 맵을 클릭하면 놓이고, **고치기**에서 값과 블록을 바꿔요. **저장**(Ctrl+S)을 누르면 JSON 파일에 써져요.
+**프로젝트** 패널의 프리팹을 장면으로 끌어 놓고, **인스펙터**에서 값과 컴포넌트를 바꿔요. **저장**(Ctrl+S)을 누르면 JSON 파일에 써져요.
 자세한 사용법: [docs/EDITOR.md](docs/EDITOR.md)
 
 ## 게임 파일 하나로 내보내기

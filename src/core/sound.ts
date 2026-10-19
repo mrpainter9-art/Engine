@@ -49,6 +49,11 @@ export class Sound {
     return [...this.buffers.keys()].sort();
   }
 
+  /** How long a sound is, in seconds (0 if there is no such sound). */
+  length(name: string): number {
+    return this.buffers.get(name)?.duration ?? 0;
+  }
+
   /** Play an effect once. An empty name does nothing, so blocks can leave sound off. */
   play(name: string): void {
     const buffer = this.find(name);
