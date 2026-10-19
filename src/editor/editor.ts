@@ -5,7 +5,9 @@ import type { GameObject, KindDef, Placement } from '../core/world';
 import { formatJson } from './format';
 import { prefabFor, renderBrowser } from './browser';
 import { Dock, type Layout } from './dock';
-import { renderHierarchy } from './hierarchy';
+import { askText, showText } from './dialog';
+import { addNode, renderHierarchy } from './hierarchy';
+import { closeMenus, menuBar, type Menu } from './menu';
 import { duplicate, removeSelected, renderPanel } from './panels';
 import { NAME_RULE, type Ed } from './state';
 import { eachNode } from './tree';
@@ -33,6 +35,7 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
   let drag: { obj: GameObject; dx: number; dy: number; before: string; moved: boolean } | null = null;
   let pan: { x: number; y: number; camX: number; camY: number } | null = null;
   const undo: string[] = [];
+  const redo: string[] = [];
   let saved: Record<string, string> = {};
   let message = '';
   let dock!: Dock;
@@ -56,8 +59,7 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
     grid: 4,
     dragging: null,
     change(fn) {
-      undo.push(snapshot());
-      if (undo.length > 100) undo.shift();
+      keepForUndo(snapshot());
       fn();
       restartScene();
       render();
@@ -89,6 +91,42 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
   // ---- data: undo and save ----
 
   const snapshot = () => JSON.stringify({ kinds, scenes });
+
+  /** Keep the state before a change, so 되돌리기 can bring it back. A new change forgets what 다시 하기 could redo. */
+  function keepForUndo(before: string): void {
+    undo.push(before);
+    if (undo.length > 100) undo.shift();
+    redo.length = 0;
+  }
+
+  function undoStep(): void {
+    const last = undo.pop();
+    if (!last) return ed.say('더 되돌릴 게 없어요.');
+    redo.push(snapshot());
+    restore(last);
+  }
+
+  function redoStep(): void {
+    const next = redo.pop();
+    if (!next) return ed.say('다시 할 게 없어요.');
+    undo.push(snapshot());
+    restore(next);
+  }
+
+  function selectAll(): void {
+    const all: Placement[] = [];
+    eachNode(game.scene.objects, (p) => all.push(p));
+    ed.selection = all;
+    ed.selected = all.at(-1) ?? null;
+    ed.inspecting = null;
+    render();
+  }
+
+  function addText(): void {
+    if (!kinds.text) return ed.say('"text" 프리팹이 없어요.');
+    const { camera } = game;
+    place('text', { x: camera.x + camera.viewWidth / 2, y: camera.y + camera.viewHeight / 2 });
+  }
 
   function restore(text: string): void {
     const data = JSON.parse(text);
@@ -163,7 +201,7 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
 
   function newScene(name: string): void {
     if (!NAME_RULE.test(name) || scenes[name]) return ed.say('장면 이름은 영어, 숫자, -, _ 만 쓰고 다른 장면과 겹치지 않게 해 주세요.');
-    undo.push(snapshot());
+    keepForUndo(snapshot());
     scenes[name] = {
       size: { width: game.width * 2, height: game.height },
       rules: { timeLimit: 60 },
@@ -279,7 +317,7 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
         const dx = snap(mouse.x - drag.dx) - obj.x;
         const dy = snap(mouse.y - drag.dy) - obj.y;
         if (!dx && !dy) return;
-        if (!drag.moved) undo.push(drag.before);
+        if (!drag.moved) keepForUndo(drag.before);
         drag.moved = true;
         // Move every selected object (an object inside another selected one already goes along with it).
         const moving = game.world.objects.filter((o) => ed.selection.includes(o.source) && !insideSelected(o.parent));
@@ -344,17 +382,22 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
         save();
       }
       if (!game.editing) return;
-      if (ctrl && e.code === 'KeyZ') {
+      if ((ctrl && e.code === 'KeyY') || (ctrl && e.shiftKey && e.code === 'KeyZ')) {
         e.preventDefault();
-        const last = undo.pop();
-        if (last) restore(last);
-        else ed.say('더 되돌릴 게 없어요.');
+        redoStep();
+      } else if (ctrl && e.code === 'KeyZ') {
+        e.preventDefault();
+        undoStep();
+      } else if (ctrl && e.code === 'KeyA') {
+        e.preventDefault();
+        selectAll();
       } else if (ctrl && e.code === 'KeyD') {
         e.preventDefault();
         duplicate(ed);
       } else if (e.code === 'Delete' || e.code === 'Backspace') {
         removeSelected(ed);
       } else if (e.code === 'Escape') {
+        if (closeMenus()) return;
         ed.palette = null;
         ed.pick(null);
         render();
@@ -380,6 +423,7 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
     const grid = selectInput([['1', '격자 1 (자유롭게)'], ['4', '격자 4'], ['8', '격자 8'], ['16', '격자 16']], String(ed.grid), (v) => (ed.grid = Number(v)));
     grid.title = '놓거나 옮길 때 몇 픽셀 단위로 맞출지';
     const items: (Node | false)[] = [
+      game.editing && menuBar(menus()),
       h('button', {
         class: 'ed-primary',
         textContent: game.editing ? '▶ 플레이' : '✎ 편집하기',
@@ -395,12 +439,7 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
         onclick: () => ((ed.palette = null), render()),
       }),
       game.editing && grid,
-      game.editing && h('button', { textContent: '↶ 되돌리기', title: 'Ctrl+Z', onclick: () => { const last = undo.pop(); if (last) restore(last); } }),
-      h('button', { textContent: canSave ? '저장 (Ctrl+S)' : '저장 (체험판은 꺼짐)', onclick: save }),
-      game.editing && dock.closed().length > 0 &&
-        selectInput([['', '+ 패널 열기'], ...dock.closed().map((p): [string, string] => [p.id, p.title])], '', (id) => id && dock.show(id)),
-      game.editing && h('button', { textContent: '패널 배치 처음대로', title: '나누고 합친 패널을 처음 배치로', onclick: () => dock.reset() }),
-      game.editing && h('span', { class: 'ed-help-icon', textContent: '?', title: HELP }),
+      !game.editing && h('button', { textContent: canSave ? '저장 (Ctrl+S)' : '저장 (체험판은 꺼짐)', onclick: save }),
       h('span', {
         class: `ed-status ${changed ? 'ed-unsaved' : ''}`,
         textContent: message || (changed ? `저장 안 된 파일 ${changed}개` : '모두 저장됨'),
@@ -408,6 +447,61 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
     ];
     bar.replaceChildren(...items.filter((i): i is Node => i !== false));
     message = '';
+  }
+
+  /** The menus at the very top (파일, 편집, ...). Rebuilt with the bar, so ticks and greyed-out items stay current. */
+  function menus(): Menu[] {
+    const none = ed.selection.length === 0;
+    return [
+      {
+        label: '파일',
+        items: [
+          { label: '새 장면…', action: () => askText('새 장면 이름', '영어, 숫자, -, _ (예: stage3)', newScene) },
+          { label: '장면 열기', items: Object.keys(scenes).map((n) => ({ label: n, checked: n === game.sceneName, action: () => goToScene(n) })) },
+          '-',
+          { label: canSave ? '저장' : '저장 (체험판은 꺼짐)', keys: 'Ctrl+S', action: save, disabled: !canSave },
+        ],
+      },
+      {
+        label: '편집',
+        items: [
+          { label: '되돌리기', keys: 'Ctrl+Z', action: undoStep, disabled: !undo.length },
+          { label: '다시 하기', keys: 'Ctrl+Y', action: redoStep, disabled: !redo.length },
+          '-',
+          { label: '복제', keys: 'Ctrl+D', action: () => duplicate(ed), disabled: none },
+          { label: '지우기', keys: 'Delete', action: () => removeSelected(ed), disabled: none },
+          '-',
+          { label: '모두 고르기', keys: 'Ctrl+A', action: selectAll },
+          { label: '고르기 해제', keys: 'Esc', action: () => (ed.pick(null), render()), disabled: none },
+        ],
+      },
+      {
+        label: '오브젝트',
+        items: [
+          { label: '빈 오브젝트 만들기', action: () => addNode(ed, null) },
+          { label: '자식 오브젝트 만들기', action: () => addNode(ed, ed.selected), disabled: !ed.selected },
+          { label: '글자 만들기', action: addText, disabled: !kinds.text },
+        ],
+      },
+      {
+        label: '패널',
+        items: [
+          ...dock.list().filter((p) => p.id !== 'view').map((p) => {
+            const open = dock.isOpen(p.id);
+            return { label: p.title, checked: open, action: () => (open ? dock.close(p.id) : dock.show(p.id)) };
+          }),
+          '-',
+          { label: '패널 배치 처음대로', action: () => dock.reset() },
+        ],
+      },
+      {
+        label: '도움말',
+        items: [
+          { label: '단축키', action: () => showText('단축키와 조작', HELP) },
+          { label: '사용법 문서', action: () => showText('사용법 문서', '자세한 사용법은 프로젝트 폴더의 docs/EDITOR.md 에 있어요.') },
+        ],
+      },
+    ];
   }
 
   // ---- the module ----
@@ -515,7 +609,9 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
 
 const HELP = [
   '클릭: 고르기 / 끌기: 옮기기',
-  'Delete: 지우기 · Ctrl+D: 복제 · Ctrl+Z: 되돌리기 · Ctrl+S: 저장',
+  'Delete: 지우기 · Ctrl+D: 복제 · Ctrl+A: 모두 고르기 · Ctrl+S: 저장',
+  'Ctrl+Z: 되돌리기 · Ctrl+Y (또는 Ctrl+Shift+Z): 다시 하기',
+  'Ctrl/Shift+클릭: 여러 개 고르기',
   '방향키 · 휠 · 오른쪽 끌기: 맵 이동 · Esc: 고르기 도구로',
   '프로젝트 패널: 프리팹이나 그림을 장면 보기로 끌어서 놓기',
   '패널: 탭을 끌어 가장자리에 놓으면 나누기, 가운데에 놓으면 합치기',

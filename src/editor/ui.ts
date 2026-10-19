@@ -176,6 +176,28 @@ button.ed-danger { color: #ff9a9a !important; }
 .ed-preview { display: flex; justify-content: center; padding: 8px; margin: 6px 0; background: repeating-conic-gradient(#2a2a35 0 25%, #222229 0 50%) 0 0 / 16px 16px; border-radius: 4px; }
 .ed-preview .ed-thumb { background: none; }
 #ed-bar button.ed-on { background: #3b4a7a; }
-.ed-help-icon { width: 20px; height: 20px; display: grid; place-items: center; border: 1px solid #555; border-radius: 50%; color: #aaa; cursor: help; font-size: 12px; }
+.ed-menubar { display: flex; gap: 2px; margin-right: 6px; }
+.ed-menu { position: relative; padding: 4px 9px; border-radius: 4px; cursor: default; user-select: none; }
+.ed-menu:hover, .ed-menu.ed-on { background: #2f2f3b; }
+.ed-menu-list { position: absolute; top: 100%; left: 0; min-width: 210px; background: #26262f; border: 1px solid #444; border-radius: 6px; padding: 4px 0;
+  box-shadow: 0 6px 18px rgba(0,0,0,.5); z-index: 20; }
+.ed-menu-item { position: relative; display: flex; align-items: center; gap: 6px; padding: 5px 12px 5px 6px; white-space: nowrap; }
+.ed-menu-item:hover { background: #3b5bdb; }
+.ed-menu-item.ed-off { color: #666; }
+.ed-menu-item.ed-off:hover { background: none; }
+.ed-menu-check { width: 14px; text-align: center; color: #9be38f; }
+.ed-menu-label { flex: 1; }
+.ed-menu-keys { color: #999; font-size: 12px; margin-left: 18px; }
+.ed-menu-item:hover .ed-menu-keys { color: #dde; }
+.ed-menu-item .ed-menu-list { display: none; top: -5px; left: 100%; }
+.ed-menu-item.ed-has-sub:hover > .ed-menu-list { display: block; }
+.ed-menu-sep { height: 1px; background: #3a3a48; margin: 4px 0; }
+.ed-shade { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: grid; place-items: center; z-index: 30; }
+.ed-dialog { background: #23232d; color: #ddd; border: 1px solid #444; border-radius: 8px; padding: 12px 16px; min-width: 300px; font: 13px system-ui, sans-serif; }
+.ed-dialog h3 { margin: 0 0 10px; font-size: 14px; }
+.ed-dialog input { width: 100%; box-sizing: border-box; background: #111; color: #eee; border: 1px solid #444; border-radius: 3px; padding: 5px 7px; font: inherit; }
+.ed-dialog button { background: #2f2f3b; color: #eee; border: 1px solid #444; border-radius: 4px; padding: 4px 12px; font: inherit; cursor: pointer; }
+.ed-dialog button.ed-primary { background: #3b5bdb; border-color: #4c6ef5; }
+.ed-dialog-text { font: 13px system-ui, sans-serif; line-height: 1.8; margin: 0; white-space: pre-wrap; }
 .ed-buttons { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
 `;

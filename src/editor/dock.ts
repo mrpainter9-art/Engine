@@ -71,6 +71,11 @@ export class Dock {
     this.changed();
   }
 
+  /** Every panel, in the order they were added. */
+  list(): DockPanel[] {
+    return [...this.panels.values()];
+  }
+
   closed(): DockPanel[] {
     return [...this.panels.values()].filter((p) => !this.find(p.id));
   }
@@ -106,7 +111,7 @@ export class Dock {
       const panel = this.panels.get(id)!;
       const tab = h('div', { class: `dk-tab ${i === node.active ? 'dk-on' : ''}`, title: '끌어서 다른 곳에 붙이거나 나누기' }, panel.title);
       if (panel.closable !== false) {
-        tab.append(h('button', { textContent: '✕', title: '닫기 (위쪽 "패널 열기"에서 다시 열어요)', onclick: () => this.close(id) }));
+        tab.append(h('button', { textContent: '✕', title: '닫기 (맨 위 "패널" 메뉴에서 다시 열어요)', onclick: () => this.close(id) }));
       }
       tab.addEventListener('pointerdown', (e) => this.dragTab(e, id, node, tab));
       strip.append(tab);
@@ -227,7 +232,12 @@ export class Dock {
     this.changed();
   }
 
-  private close(id: string): void {
+  /** True when the panel is somewhere in the layout. */
+  isOpen(id: string): boolean {
+    return !!this.find(id);
+  }
+
+  close(id: string): void {
     const node = this.find(id);
     if (!node) return;
     node.tabs.splice(node.tabs.indexOf(id), 1);

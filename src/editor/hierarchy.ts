@@ -102,7 +102,7 @@ export function renderHierarchy(ed: Ed, root: HTMLElement): void {
 }
 
 /** Make an empty node (choose its prefab in the 인스펙터). At the middle of the view, or just inside the parent. */
-function addNode(ed: Ed, parent: Placement | null): void {
+export function addNode(ed: Ed, parent: Placement | null): void {
   const { camera } = ed.game;
   const node: Placement = parent
     ? { kind: '', x: 8, y: 0 }
