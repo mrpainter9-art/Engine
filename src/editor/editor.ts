@@ -268,8 +268,11 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
         // Move it and everything inside it on screen right away.
         for (const o of game.world.objects) {
           if (!isUnder(o, obj)) continue;
-          o.x = o.startX += dx;
-          o.y = o.startY += dy;
+          // Add the change rather than copying startX: a text's box isn't at its start point.
+          o.startX += dx;
+          o.startY += dy;
+          o.x += dx;
+          o.y += dy;
         }
       }
     });
