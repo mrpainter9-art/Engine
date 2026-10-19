@@ -202,14 +202,8 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
   function newScene(name: string): void {
     if (!NAME_RULE.test(name) || scenes[name]) return ed.say('장면 이름은 영어, 숫자, -, _ 만 쓰고 다른 장면과 겹치지 않게 해 주세요.');
     keepForUndo(snapshot());
-    scenes[name] = {
-      size: { width: game.width * 2, height: game.height },
-      rules: { timeLimit: 60 },
-      objects: [
-        { kind: 'ground', x: 0, y: game.height - 16, w: game.width * 2 },
-        { kind: 'player', x: 16, y: game.height - 32 },
-      ].filter((o) => kinds[o.kind]),
-    };
+    // A blank scene: one screen, no rules, and a single empty object to start from (pick its prefab in the 인스펙터).
+    scenes[name] = { objects: [{ kind: '', x: game.width / 2, y: game.height / 2 }] };
     goToScene(name);
     ed.say(`새 장면 "${name}"을 만들었어요. 저장하면 src/scenes/${name}.json 파일이 생겨요.`);
   }
