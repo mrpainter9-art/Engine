@@ -115,6 +115,17 @@ export const STYLE = `
 .ed-tool:hover { background: #2a2a35; }
 .ed-tool.ed-on { background: #3b4a7a; }
 .ed-thumb { image-rendering: pixelated; background: #2a2a35; border-radius: 3px; flex: none; }
+.ed-node { display: flex; align-items: center; gap: 5px; padding: 2px 8px; cursor: pointer; white-space: nowrap; user-select: none; }
+.ed-node:hover { background: #2a2a35; }
+.ed-node.ed-on { background: #3b4a7a; }
+.ed-node small { color: #888; }
+.ed-node[data-drop=into] { outline: 1px solid #4c6ef5; outline-offset: -1px; background: rgba(76, 110, 245, 0.2); }
+.ed-node[data-drop=before] { box-shadow: inset 0 2px #4c6ef5; }
+.ed-node[data-drop=after] { box-shadow: inset 0 -2px #4c6ef5; }
+.ed-fold { width: 12px; flex: none; color: #888; text-align: center; }
+.ed-empty-icon { width: 18px; flex: none; text-align: center; color: #aaa; }
+.ed-tree-end { flex: 1; min-height: 40px; padding: 8px; color: #777; font-size: 12px; }
+.ed-tree-end[data-drop] { box-shadow: inset 0 2px #4c6ef5; }
 .ed-help { margin: auto 10px 10px; color: #888; font-size: 12px; line-height: 1.6; }
 .ed-body { padding: 4px 10px 16px; }
 .ed-body > select, .ed-body > input { width: 100%; box-sizing: border-box; margin: 4px 0; }

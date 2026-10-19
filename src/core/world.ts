@@ -26,6 +26,11 @@ export interface GameObject {
   blocks: BlockInstance[];
   /** The scene line this object was made from (the editor uses it to move or change the object). */
   source: Placement;
+  /** The node this one sits under (it moves along with it), or null. */
+  parent: GameObject | null;
+  /** Where it was when this frame started (children follow how far their parent moved). */
+  frameX: number;
+  frameY: number;
 }
 
 /** Values a block gets from kinds.json (and the scene), e.g. { speed: 30, distance: 60 }. */
@@ -64,11 +69,18 @@ export interface KindDef extends Look {
   animations?: Record<string, Look>;
 }
 
-/** One entry of a scene file: which kind, where, and optional values that override the kind's. */
+/**
+ * One node of a scene: which kind (or "" for an empty node that only groups others), where,
+ * and optional values that override the kind's. Children are placed relative to their parent
+ * and move along with it.
+ */
 export interface Placement {
   kind: string;
   x: number;
   y: number;
+  /** A name to tell nodes apart in the editor, e.g. "first enemy". */
+  name?: string;
+  children?: Placement[];
   [override: string]: unknown;
 }
 
@@ -86,23 +98,23 @@ export class World implements Module {
     return this;
   }
 
-  spawn(p: Placement): GameObject | null {
-    const kind = this.kinds[p.kind];
-    if (!kind) {
-      warn(`장면에 "${p.kind}"라는 종류가 있는데 kinds.json에 없어요.`);
-      return null;
-    }
-    const { kind: name, x, y, ...overrides } = p;
-    const img = this.game.assets.image(kind.image);
-    const frameWidth = img ? Math.floor(img.width / (kind.frames ?? 1)) : 16;
+  /** Make an object from a scene node (and its children). parent = the object it sits under. */
+  spawn(p: Placement, parent: GameObject | null = null): GameObject {
+    const kind = p.kind ? this.kinds[p.kind] : undefined;
+    if (p.kind && !kind) warn(`장면에 "${p.kind}"라는 종류가 있는데 kinds.json에 없어요.`);
+    const { kind: name, ...overrides } = p;
+    const x = p.x + (parent?.startX ?? 0);
+    const y = p.y + (parent?.startY ?? 0);
+    const img = kind ? this.game.assets.image(kind.image) : null;
+    const frameWidth = img ? Math.floor(img.width / (kind?.frames ?? 1)) : 8;
     // A scene line may give w/h to make an object bigger than its picture (the picture repeats).
     const obj: GameObject = {
       kind: name, x, y, startX: x, startY: y,
-      w: Number(p.w ?? frameWidth), h: Number(p.h ?? img?.height ?? 16),
-      image: kind.image, flipX: false, anim: '', animTime: 0,
-      vx: 0, vy: 0, onGround: false, solid: false, blocks: [], source: p,
+      w: Number(p.w ?? frameWidth), h: Number(p.h ?? img?.height ?? 8),
+      image: kind?.image ?? '', flipX: false, anim: '', animTime: 0,
+      vx: 0, vy: 0, onGround: false, solid: false, blocks: [], source: p, parent, frameX: x, frameY: y,
     };
-    for (const { type, ...values } of kind.blocks) {
+    for (const { type, ...values } of kind?.blocks ?? []) {
       const behavior = this.behaviors.get(type);
       if (!behavior) {
         warn(`"${name}"에 쓰인 "${type}" 블록이 없어요. 이름이 맞는지, main.ts에 등록됐는지 확인해 주세요.`);
@@ -115,6 +127,7 @@ export class World implements Module {
     }
     this.objects.push(obj);
     for (const b of obj.blocks) b.behavior.setup?.(obj, b.params, b.state, this.game);
+    for (const child of p.children ?? []) this.spawn(child, obj);
     return obj;
   }
 
@@ -182,16 +195,24 @@ export class World implements Module {
 
   update(dt: number, game: Game): void {
     if (game.paused) return;
+    for (const o of this.objects) [o.frameX, o.frameY] = [o.x, o.y];
     // Copy the list so objects can be added or removed while we go through it.
     for (const obj of [...this.objects]) {
       const anim = obj.anim;
       for (const b of obj.blocks) b.behavior.update?.(obj, b.params, b.state, dt, game);
       obj.animTime = obj.anim === anim ? obj.animTime + dt : 0; // a new animation starts from its first picture
     }
+    // Children move as far as their parent moved. Parents come first in the list, so it carries down.
+    for (const o of this.objects) {
+      if (!o.parent) continue;
+      o.x += o.parent.x - o.parent.frameX;
+      o.y += o.parent.y - o.parent.frameY;
+    }
   }
 
   draw(ctx: CanvasRenderingContext2D, { assets }: Game): void {
     for (const o of this.objects) {
+      if (!o.image) continue; // empty node: nothing to draw
       const look = this.look(o);
       const img = assets.image(look.image);
       const frames = look.frames ?? 1;

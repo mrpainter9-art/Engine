@@ -4,8 +4,10 @@ import type { SceneData } from '../core/scenes';
 import type { GameObject, KindDef, Placement } from '../core/world';
 import { formatJson } from './format';
 import { Dock, type Layout } from './dock';
+import { renderHierarchy } from './hierarchy';
 import { duplicate, removeSelected, renderPanel } from './panels';
 import { NAME_RULE, type Ed } from './state';
+import { eachNode } from './tree';
 import { STYLE, h, selectInput, thumbnail } from './ui';
 
 // The editor: place objects with the mouse, change kinds, blocks and scenes, and save to the JSON files.
@@ -37,6 +39,7 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
   // One element per panel; the dock decides where each one sits.
   const left = h('div', { class: 'ed-panel' });
   const objectPanel = h('div', { class: 'ed-panel' });
+  const treePanel = h('div', { class: 'ed-panel' });
   const kindPanel = h('div', { class: 'ed-panel' });
   const scenePanel = h('div', { class: 'ed-panel' });
   const bar = h('div', { id: 'ed-bar' });
@@ -237,13 +240,19 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
       }
       if (drag) {
         const { obj } = drag;
-        const x = snap(mouse.x - drag.dx);
-        const y = snap(mouse.y - drag.dy);
-        if (x === obj.source.x && y === obj.source.y) return;
+        const dx = snap(mouse.x - drag.dx) - obj.x;
+        const dy = snap(mouse.y - drag.dy) - obj.y;
+        if (!dx && !dy) return;
         if (!drag.moved) undo.push(drag.before);
         drag.moved = true;
-        obj.source.x = obj.x = obj.startX = x;
-        obj.source.y = obj.y = obj.startY = y;
+        obj.source.x += dx; // a child's x/y is relative to its parent, so add the change instead of setting it
+        obj.source.y += dy;
+        // Move it and everything inside it on screen right away.
+        for (const o of game.world.objects) {
+          if (!isUnder(o, obj)) continue;
+          o.x = o.startX += dx;
+          o.y = o.startY += dy;
+        }
       }
     });
     canvas.addEventListener('pointerup', () => {
@@ -296,6 +305,7 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
   function render(): void {
     renderBar();
     renderLeft();
+    renderHierarchy(ed, treePanel);
     renderPanel(ed, objectPanel, 'object');
     renderPanel(ed, kindPanel, 'kind');
     renderPanel(ed, scenePanel, 'scene');
@@ -374,7 +384,8 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
       dock = new Dock(area, defaultLayout);
       dock.add({ id: 'view', title: '장면 보기', el: stage, closable: false });
       dock.add({ id: 'palette', title: '놓을 물건', el: left });
-      dock.add({ id: 'object', title: '물건', el: objectPanel });
+      dock.add({ id: 'tree', title: '노드 목록', el: treePanel });
+      dock.add({ id: 'object', title: '노드', el: objectPanel });
       dock.add({ id: 'kind', title: '종류', el: kindPanel });
       dock.add({ id: 'scene', title: '장면', el: scenePanel });
       dock.load();
@@ -400,7 +411,9 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
       // Starting the scene again moves the camera to the player; while editing keep it where it was.
       if (g.editing && camKeep) g.camera.jumpTo(camKeep.x + g.camera.viewWidth / 2, camKeep.y + g.camera.viewHeight / 2);
       camKeep = null;
-      if (ed.selected && !g.scene.objects.includes(ed.selected)) ed.selected = null;
+      let stillThere = false;
+      eachNode(g.scene.objects, (p) => (stillThere ||= p === ed.selected));
+      if (!stillThere) ed.selected = null;
       remember();
       render();
     },
@@ -422,6 +435,20 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
       ctx.strokeRect(0.5, 0.5, camera.worldWidth - 1, camera.worldHeight - 1);
       ctx.setLineDash([]);
       // Object under the mouse, and the selected one.
+      // Empty nodes have no picture: show them as a small diamond.
+      ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+      for (const o of g.world.objects) {
+        if (o.image) continue;
+        const cx = Math.round(o.x + o.w / 2) + 0.5;
+        const cy = Math.round(o.y + o.h / 2) + 0.5;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - 4);
+        ctx.lineTo(cx + 4, cy);
+        ctx.lineTo(cx, cy + 4);
+        ctx.lineTo(cx - 4, cy);
+        ctx.closePath();
+        ctx.stroke();
+      }
       const hover = mouse && !ed.palette ? pick(mouse) : null;
       if (hover) outline(ctx, hover, 'rgba(255,255,255,0.6)');
       const sel = g.world.objects.find((o) => o.source === ed.selected);
@@ -444,11 +471,17 @@ function defaultLayout(): Layout {
     split: 'row',
     sizes: [17, 58, 25],
     items: [
-      { tabs: ['palette'], active: 0 },
+      { split: 'col', sizes: [50, 50], items: [{ tabs: ['tree'], active: 0 }, { tabs: ['palette'], active: 0 }] },
       { tabs: ['view'], active: 0 },
       { split: 'col', sizes: [55, 45], items: [{ tabs: ['object'], active: 0 }, { tabs: ['kind', 'scene'], active: 0 }] },
     ],
   };
+}
+
+/** True when o is node or sits somewhere inside it. */
+function isUnder(o: GameObject, node: GameObject): boolean {
+  for (let p: GameObject | null = o; p; p = p.parent) if (p === node) return true;
+  return false;
 }
 
 function outline(ctx: CanvasRenderingContext2D, o: GameObject, color: string): void {

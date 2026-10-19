@@ -1,6 +1,7 @@
 import type { SceneText } from '../core/scenes';
 import type { Behavior, KindDef, Look, Params, Placement } from '../core/world';
 import { NAME_RULE, type Ed } from './state';
+import { eachNode, removeNode, spotOf } from './tree';
 import { checkInput, confirmButton, h, numberInput, row, selectInput, textInput, thumbnail } from './ui';
 
 // Three panels: the selected object, its kind, and the whole scene. Each can sit anywhere in the layout.
@@ -20,28 +21,33 @@ export function renderPanel(ed: Ed, root: HTMLElement, which: 'object' | 'kind' 
   if (which === 'scene') sceneTab(ed, body);
 }
 
-// ---- 물건: one placed object ----
+// ---- 노드: one node of the scene ----
 
 function objectTab(ed: Ed, body: HTMLElement): void {
   const p = ed.selected;
   if (!p) {
-    body.append(h('p', { class: 'ed-note', textContent: '맵에서 물건을 클릭하면 위치와 값을 여기서 바꿀 수 있어요. 왼쪽 목록에서 종류를 고르고 맵을 클릭하면 새로 놓여요.' }));
+    body.append(h('p', { class: 'ed-note', textContent: '맵이나 노드 목록에서 노드를 고르면 이름, 종류, 위치, 값을 여기서 바꿀 수 있어요.' }));
     return;
   }
   const kind = ed.kinds[p.kind];
   const img = kind ? ed.game.assets.image(kind.image) : null;
+  const parent = spotOf(ed.game.scene, p)?.parent;
+  const kindOptions: [string, string][] = [['', '(빈 노드: 묶기만 함)'], ...Object.keys(ed.kinds).map((n): [string, string] => [n, n])];
   body.append(
-    h('div', { class: 'ed-card-head' }, thumbnail(img, kind?.frames), h('b', { textContent: p.kind }),
-      h('button', { textContent: '종류 고치기', onclick: () => ((ed.kindName = p.kind), ed.show('kind'), ed.render()) })),
-    row('x (가로)', numberInput(p.x, (v) => ed.change(() => (p.x = v ?? 0)))),
-    row('y (세로)', numberInput(p.y, (v) => ed.change(() => (p.y = v ?? 0)))),
+    h('div', { class: 'ed-card-head' }, thumbnail(img, kind?.frames), h('b', { textContent: p.name || p.kind || '빈 노드' }),
+      kind && h('button', { textContent: '종류 고치기', onclick: () => ((ed.kindName = p.kind), ed.show('kind'), ed.render()) })),
+    row('이름', textInput(p.name, (v) => ed.change(() => setOrDelete(p, 'name', v.trim() || undefined)), '이름 없음'), '노드 목록에서 알아보기 쉽게'),
+    row('종류', selectInput(kindOptions, p.kind, (v) => ed.change(() => (p.kind = v))), '이 노드가 어떤 물건인지'),
+    ...(parent ? [h('p', { class: 'ed-note', textContent: `"${parent.name || parent.kind || '빈 노드'}" 안에 있어요. 위치는 부모 기준이고, 부모가 움직이면 같이 움직여요.` })] : []),
+    row(parent ? 'x (부모 기준)' : 'x (가로)', numberInput(p.x, (v) => ed.change(() => (p.x = v ?? 0)))),
+    row(parent ? 'y (부모 기준)' : 'y (세로)', numberInput(p.y, (v) => ed.change(() => (p.y = v ?? 0)))),
     row('w (넓이)', numberInput(p.w as number | undefined, (v) => ed.change(() => setOrDelete(p, 'w', v)), '그림 크기'), '그림보다 크게 놓으면 그림이 반복돼요'),
     row('h (높이)', numberInput(p.h as number | undefined, (v) => ed.change(() => setOrDelete(p, 'h', v)), '그림 크기')),
   );
   if (kind) {
     const values = kindValues(ed, kind);
     if (Object.keys(values).length) {
-      body.append(h('h3', { textContent: '이 물건만 바꿀 값' }), h('p', { class: 'ed-note', textContent: '비워 두면 종류에 정한 값(흐린 글자)을 따라가요.' }));
+      body.append(h('h3', { textContent: '이 노드만 바꿀 값' }), h('p', { class: 'ed-note', textContent: '비워 두면 종류에 정한 값(흐린 글자)을 따라가요.' }));
       for (const [key, kindValue] of Object.entries(values)) {
         body.append(row(PARAM_NAMES[key] ?? key, overrideInput(ed, p, key, kindValue), key));
       }
@@ -70,30 +76,30 @@ function overrideInput(ed: Ed, p: Placement, key: string, kindValue: unknown): H
   return textInput(value as string | undefined, (v) => set(v === '' ? undefined : v), String(kindValue));
 }
 
+/** Copy the selected node (with everything inside it) right after it, a little to the right. */
 export function duplicate(ed: Ed): void {
   const p = ed.selected;
-  if (!p) return;
-  const copy = { ...p, x: p.x + ed.grid * 2 };
-  ed.change(() => ed.game.scene.objects.push(copy));
+  const spot = p && spotOf(ed.game.scene, p);
+  if (!p || !spot) return;
+  const copy: Placement = { ...structuredClone(p), x: p.x + ed.grid * 2 };
+  ed.change(() => spot.list.splice(spot.list.indexOf(p) + 1, 0, copy));
   ed.selected = copy;
   ed.render();
 }
 
+/** Delete the selected node and everything inside it. */
 export function removeSelected(ed: Ed): void {
   const p = ed.selected;
   if (!p) return;
   ed.selected = null;
-  ed.change(() => {
-    const list = ed.game.scene.objects;
-    list.splice(list.indexOf(p), 1);
-  });
+  ed.change(() => removeNode(ed.game.scene, p));
 }
 
 // ---- 종류: picture + blocks ----
 
 function kindTab(ed: Ed, body: HTMLElement): void {
   const names = Object.keys(ed.kinds);
-  const name = ed.kindName && ed.kinds[ed.kindName] ? ed.kindName : ed.selected?.kind ?? names[0];
+  const name = ed.kindName && ed.kinds[ed.kindName] ? ed.kindName : ed.selected?.kind || names[0];
   const kind = ed.kinds[name];
   body.append(row('고칠 종류', selectInput(names.map((n) => [n, n]), name, (v) => ((ed.kindName = v), ed.render()))));
   if (!kind) return;
@@ -126,13 +132,14 @@ function kindTab(ed: Ed, body: HTMLElement): void {
     ed.change(() => kind.blocks.push({ type, ...findBehavior(ed, type)?.defaults }));
   }));
 
-  const used = Object.values(ed.scenes).reduce((n, s) => n + s.objects.filter((o) => o.kind === name).length, 0);
-  body.append(h('div', { class: 'ed-buttons' }, confirmButton(`이 종류 지우기${used ? ` (놓인 ${used}개도 함께)` : ''}`, () => {
-    ed.selected = null;
+  let used = 0;
+  for (const s of Object.values(ed.scenes)) eachNode(s.objects, (o) => o.kind === name && used++);
+  body.append(h('div', { class: 'ed-buttons' }, confirmButton(`이 종류 지우기${used ? ` (놓인 ${used}개는 빈 노드로)` : ''}`, () => {
     ed.kindName = null;
     ed.change(() => {
       delete ed.kinds[name];
-      for (const s of Object.values(ed.scenes)) s.objects = s.objects.filter((o) => o.kind !== name);
+      // Nodes of this kind become empty nodes, so whatever sits inside them stays.
+      for (const s of Object.values(ed.scenes)) eachNode(s.objects, (o) => o.kind === name && (o.kind = ''));
     });
   })));
 }
@@ -192,7 +199,7 @@ function renameKind(ed: Ed, from: string, to: string): void {
     Object.assign(ed.kinds, Object.fromEntries(entries));
     for (const k of Object.values(ed.kinds)) for (const b of k.blocks) for (const key of ['target', 'by']) if (b[key] === from) b[key] = to;
     for (const s of Object.values(ed.scenes)) {
-      for (const o of s.objects) if (o.kind === from) o.kind = to;
+      eachNode(s.objects, (o) => o.kind === from && (o.kind = to));
       if (s.rules?.collect === from) s.rules.collect = to;
     }
   });
