@@ -30,6 +30,7 @@ import controls from './controls.json';
 import kinds from './kinds.json';
 import settings from './settings.json';
 
+document.title = settings.title;
 const canvas = document.getElementById('screen') as HTMLCanvasElement;
 const ctx = setupScreen(canvas, settings as ScreenSettings);
 const assets = new Assets();
