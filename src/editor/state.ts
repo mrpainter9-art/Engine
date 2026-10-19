@@ -10,9 +10,9 @@ export interface Ed {
   behaviors: Behavior[];
   /** Kind to place with a click; null = pick-and-move tool. */
   palette: string | null;
-  /** The scene line (placed object) shown in the 물건 tab. */
+  /** The scene line (placed object) shown in the 오브젝트 tab. */
   selected: Placement | null;
-  /** Kind shown in the 종류 tab. */
+  /** Kind shown in the 프리팹 tab. */
   kindName: string | null;
   /** Placed objects snap to this many pixels. */
   grid: number;

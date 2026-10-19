@@ -77,5 +77,5 @@ export function moveNode(scene: SceneData, node: Placement, target: Placement | 
 
 /** What to call a node in lists: its name, else its kind. */
 export function nodeLabel(p: Placement): string {
-  return p.name || p.kind || '빈 노드';
+  return p.name || p.kind || '빈 오브젝트';
 }

@@ -342,10 +342,10 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
   function renderLeft(): void {
     const tool = (on: boolean, onclick: () => void, ...children: (Node | string)[]) =>
       h('div', { class: `ed-tool ${on ? 'ed-on' : ''}`, onclick }, ...children);
-    const newKind = h('input', { type: 'text', placeholder: '새 종류 이름 + Enter', style: 'margin:6px 10px' });
+    const newKind = h('input', { type: 'text', placeholder: '새 프리팹 이름 + Enter', style: 'margin:6px 10px' });
     newKind.addEventListener('change', () => {
       const name = newKind.value.trim();
-      if (!NAME_RULE.test(name) || kinds[name]) return ed.say('종류 이름은 영어, 숫자, -, _ 만 쓰고 겹치지 않게 해 주세요.');
+      if (!NAME_RULE.test(name) || kinds[name]) return ed.say('프리팹 이름은 영어, 숫자, -, _ 만 쓰고 겹치지 않게 해 주세요.');
       ed.change(() => (kinds[name] = { image: game.assets.names()[0] ?? '', blocks: [] }));
       ed.palette = name;
       ed.kindName = name;
@@ -356,7 +356,7 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
     left.replaceChildren(
       h('h3', { textContent: '도구' }),
       tool(!ed.palette, () => ((ed.palette = null), render()), h('span', { textContent: '↖', style: 'width:28px;text-align:center;font-size:18px' }), '고르기 · 옮기기'),
-      h('h3', { textContent: '놓을 물건 (고르고 맵 클릭)' }),
+      h('h3', { textContent: '놓을 프리팹 (고르고 맵 클릭)' }),
       ...Object.entries(kinds).map(([name, def]) =>
         tool(ed.palette === name, () => ((ed.palette = name), (ed.kindName = name), render()), thumbnail(game.assets.image(def.image), def.frames), name)),
       newKind,
@@ -383,10 +383,10 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
       app.replaceChildren(h('div', { id: 'ed-center' }, bar, area));
       dock = new Dock(area, defaultLayout);
       dock.add({ id: 'view', title: '장면 보기', el: stage, closable: false });
-      dock.add({ id: 'palette', title: '놓을 물건', el: left });
-      dock.add({ id: 'tree', title: '노드 목록', el: treePanel });
-      dock.add({ id: 'object', title: '노드', el: objectPanel });
-      dock.add({ id: 'kind', title: '종류', el: kindPanel });
+      dock.add({ id: 'palette', title: '놓을 프리팹', el: left });
+      dock.add({ id: 'tree', title: '오브젝트 목록', el: treePanel });
+      dock.add({ id: 'object', title: '오브젝트', el: objectPanel });
+      dock.add({ id: 'kind', title: '프리팹', el: kindPanel });
       dock.add({ id: 'scene', title: '장면', el: scenePanel });
       dock.load();
       dock.onChange = renderBar;

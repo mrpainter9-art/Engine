@@ -7,7 +7,7 @@ import { checkInput, confirmButton, h, numberInput, row, selectInput, textInput,
 // Three panels: the selected object, its kind, and the whole scene. Each can sit anywhere in the layout.
 
 const PARAM_NAMES: Record<string, string> = {
-  speed: '빠르기', distance: '거리', edges: '발판 끝에서 돌기', height: '높이', target: '대상 종류', range: '이 거리 안이면',
+  speed: '빠르기', distance: '거리', edges: '발판 끝에서 돌기', height: '높이', target: '대상 프리팹', range: '이 거리 안이면',
   by: '누가 닿으면', score: '점수', sound: '소리', strength: '힘', maxFall: '가장 빠른 낙하', power: '점프 힘',
   key: '키 (동작 이름)', axes: '방향', bottom: '아래도 막기', idle: '서 있을 때', walk: '걸을 때', air: '공중에서',
 };
@@ -21,24 +21,24 @@ export function renderPanel(ed: Ed, root: HTMLElement, which: 'object' | 'kind' 
   if (which === 'scene') sceneTab(ed, body);
 }
 
-// ---- 노드: one node of the scene ----
+// ---- 오브젝트: one node of the scene ----
 
 function objectTab(ed: Ed, body: HTMLElement): void {
   const p = ed.selected;
   if (!p) {
-    body.append(h('p', { class: 'ed-note', textContent: '맵이나 노드 목록에서 노드를 고르면 이름, 종류, 위치, 값을 여기서 바꿀 수 있어요.' }));
+    body.append(h('p', { class: 'ed-note', textContent: '맵이나 오브젝트 목록에서 오브젝트를 고르면 이름, 프리팹, 위치, 값을 여기서 바꿀 수 있어요.' }));
     return;
   }
   const kind = ed.kinds[p.kind];
   const img = kind ? ed.game.assets.image(kind.image) : null;
   const parent = spotOf(ed.game.scene, p)?.parent;
-  const kindOptions: [string, string][] = [['', '(빈 노드: 묶기만 함)'], ...Object.keys(ed.kinds).map((n): [string, string] => [n, n])];
+  const kindOptions: [string, string][] = [['', '(빈 오브젝트: 묶기만 함)'], ...Object.keys(ed.kinds).map((n): [string, string] => [n, n])];
   body.append(
-    h('div', { class: 'ed-card-head' }, thumbnail(img, kind?.frames), h('b', { textContent: p.name || p.kind || '빈 노드' }),
-      kind && h('button', { textContent: '종류 고치기', onclick: () => ((ed.kindName = p.kind), ed.show('kind'), ed.render()) })),
-    row('이름', textInput(p.name, (v) => ed.change(() => setOrDelete(p, 'name', v.trim() || undefined)), '이름 없음'), '노드 목록에서 알아보기 쉽게'),
-    row('종류', selectInput(kindOptions, p.kind, (v) => ed.change(() => (p.kind = v))), '이 노드가 어떤 물건인지'),
-    ...(parent ? [h('p', { class: 'ed-note', textContent: `"${parent.name || parent.kind || '빈 노드'}" 안에 있어요. 위치는 부모 기준이고, 부모가 움직이면 같이 움직여요.` })] : []),
+    h('div', { class: 'ed-card-head' }, thumbnail(img, kind?.frames), h('b', { textContent: p.name || p.kind || '빈 오브젝트' }),
+      kind && h('button', { textContent: '프리팹 고치기', onclick: () => ((ed.kindName = p.kind), ed.show('kind'), ed.render()) })),
+    row('이름', textInput(p.name, (v) => ed.change(() => setOrDelete(p, 'name', v.trim() || undefined)), '이름 없음'), '오브젝트 목록에서 알아보기 쉽게'),
+    row('프리팹', selectInput(kindOptions, p.kind, (v) => ed.change(() => (p.kind = v))), '이 오브젝트를 어떤 프리팹으로 만들지'),
+    ...(parent ? [h('p', { class: 'ed-note', textContent: `"${parent.name || parent.kind || '빈 오브젝트'}" 안에 있어요. 위치는 부모 기준이고, 부모가 움직이면 같이 움직여요.` })] : []),
     row(parent ? 'x (부모 기준)' : 'x (가로)', numberInput(p.x, (v) => ed.change(() => (p.x = v ?? 0)))),
     row(parent ? 'y (부모 기준)' : 'y (세로)', numberInput(p.y, (v) => ed.change(() => (p.y = v ?? 0)))),
     row('w (넓이)', numberInput(p.w as number | undefined, (v) => ed.change(() => setOrDelete(p, 'w', v)), '그림 크기'), '그림보다 크게 놓으면 그림이 반복돼요'),
@@ -47,7 +47,7 @@ function objectTab(ed: Ed, body: HTMLElement): void {
   if (kind) {
     const values = kindValues(ed, kind);
     if (Object.keys(values).length) {
-      body.append(h('h3', { textContent: '이 노드만 바꿀 값' }), h('p', { class: 'ed-note', textContent: '비워 두면 종류에 정한 값(흐린 글자)을 따라가요.' }));
+      body.append(h('h3', { textContent: '이 오브젝트만 바꿀 값' }), h('p', { class: 'ed-note', textContent: '비워 두면 프리팹에 정한 값(흐린 글자)을 따라가요.' }));
       for (const [key, kindValue] of Object.entries(values)) {
         body.append(row(PARAM_NAMES[key] ?? key, overrideInput(ed, p, key, kindValue), key));
       }
@@ -69,7 +69,7 @@ function overrideInput(ed: Ed, p: Placement, key: string, kindValue: unknown): H
   const set = (v: unknown) => ed.change(() => setOrDelete(p, key, v));
   const value = p[key];
   if (typeof kindValue === 'boolean') {
-    return selectInput([['', `종류대로 (${kindValue ? '켬' : '끔'})`], ['true', '켬'], ['false', '끔']], value === undefined ? '' : String(value),
+    return selectInput([['', `프리팹대로 (${kindValue ? '켬' : '끔'})`], ['true', '켬'], ['false', '끔']], value === undefined ? '' : String(value),
       (v) => set(v === '' ? undefined : v === 'true'));
   }
   if (typeof kindValue === 'number') return numberInput(value as number | undefined, set, String(kindValue));
@@ -95,18 +95,18 @@ export function removeSelected(ed: Ed): void {
   ed.change(() => removeNode(ed.game.scene, p));
 }
 
-// ---- 종류: picture + blocks ----
+// ---- 프리팹: picture + blocks ----
 
 function kindTab(ed: Ed, body: HTMLElement): void {
   const names = Object.keys(ed.kinds);
   const name = ed.kindName && ed.kinds[ed.kindName] ? ed.kindName : ed.selected?.kind || names[0];
   const kind = ed.kinds[name];
-  body.append(row('고칠 종류', selectInput(names.map((n) => [n, n]), name, (v) => ((ed.kindName = v), ed.render()))));
+  body.append(row('고칠 프리팹', selectInput(names.map((n) => [n, n]), name, (v) => ((ed.kindName = v), ed.render()))));
   if (!kind) return;
   const images = ed.game.assets.names().map((n): [string, string] => [n, n]);
 
   body.append(
-    row('이름', textInput(name, (v) => renameKind(ed, name, v.trim())), '바꾸면 장면과 블록 값 속 이름도 같이 바뀌어요'),
+    row('이름', textInput(name, (v) => renameKind(ed, name, v.trim())), '바꾸면 장면과 컴포넌트 값 속 이름도 같이 바뀌어요'),
     h('h3', { textContent: '그림' }),
     h('div', { class: 'ed-card-head' }, thumbnail(ed.game.assets.image(kind.image), kind.frames, 40),
       selectInput(images, kind.image, (v) => ed.change(() => (kind.image = v)))),
@@ -124,9 +124,9 @@ function kindTab(ed: Ed, body: HTMLElement): void {
   }, '새 애니메이션 이름 (예: walk) 입력 후 Enter');
   body.append(newAnim);
 
-  body.append(h('h3', { textContent: '행동 블록 (위에서부터 차례로)' }));
+  body.append(h('h3', { textContent: '컴포넌트 (위에서부터 차례로)' }));
   kind.blocks.forEach((block, i) => body.append(blockCard(ed, kind, i)));
-  const options: [string, string][] = [['', '+ 블록 추가...'], ...ed.behaviors.map((b): [string, string] => [b.type, `${b.label ?? b.type} (${b.type})`])];
+  const options: [string, string][] = [['', '+ 컴포넌트 추가...'], ...ed.behaviors.map((b): [string, string] => [b.type, `${b.label ?? b.type} (${b.type})`])];
   body.append(selectInput(options, '', (type) => {
     if (!type) return;
     ed.change(() => kind.blocks.push({ type, ...findBehavior(ed, type)?.defaults }));
@@ -134,7 +134,7 @@ function kindTab(ed: Ed, body: HTMLElement): void {
 
   let used = 0;
   for (const s of Object.values(ed.scenes)) eachNode(s.objects, (o) => o.kind === name && used++);
-  body.append(h('div', { class: 'ed-buttons' }, confirmButton(`이 종류 지우기${used ? ` (놓인 ${used}개는 빈 노드로)` : ''}`, () => {
+  body.append(h('div', { class: 'ed-buttons' }, confirmButton(`이 프리팹 지우기${used ? ` (놓인 ${used}개는 빈 오브젝트로)` : ''}`, () => {
     ed.kindName = null;
     ed.change(() => {
       delete ed.kinds[name];
@@ -165,7 +165,7 @@ function blockCard(ed: Ed, kind: KindDef, i: number): HTMLElement {
       h('button', { textContent: '↓', title: '아래로', disabled: i === kind.blocks.length - 1, onclick: () => move(i + 1) }),
       h('button', { textContent: '✕', title: '빼기', onclick: () => ed.change(() => kind.blocks.splice(i, 1)) })),
   );
-  if (!behavior) card.append(h('p', { class: 'ed-note', textContent: '이런 블록이 없어요. 이름을 확인해 주세요.' }));
+  if (!behavior) card.append(h('p', { class: 'ed-note', textContent: '이런 컴포넌트가 없어요. 이름을 확인해 주세요.' }));
   const values: Params = { ...behavior?.defaults, ...block };
   delete values.type;
   for (const [key, value] of Object.entries(values)) {
@@ -191,7 +191,7 @@ function paramInput(ed: Ed, kind: KindDef, behavior: Behavior | undefined, key: 
 
 function renameKind(ed: Ed, from: string, to: string): void {
   if (to === from) return;
-  if (!NAME_RULE.test(to) || ed.kinds[to]) return ed.say('이름은 영어, 숫자, -, _ 만 쓰고 다른 종류와 겹치지 않게 해 주세요.');
+  if (!NAME_RULE.test(to) || ed.kinds[to]) return ed.say('이름은 영어, 숫자, -, _ 만 쓰고 다른 프리팹과 겹치지 않게 해 주세요.');
   ed.change(() => {
     // Rebuild the list so the kind keeps its place in kinds.json.
     const entries = Object.entries(ed.kinds).map(([k, v]): [string, KindDef] => [k === from ? to : k, v]);
@@ -231,7 +231,7 @@ function sceneTab(ed: Ed, body: HTMLElement): void {
   if (s.rules) {
     const rules = s.rules;
     body.append(
-      row('모을 종류', selectInput([['', '(기본: coin)'], ...Object.keys(ed.kinds).map((n): [string, string] => [n, n])], String(rules.collect ?? ''),
+      row('모을 프리팹', selectInput([['', '(기본: coin)'], ...Object.keys(ed.kinds).map((n): [string, string] => [n, n])], String(rules.collect ?? ''),
         (v) => ed.change(() => setOrDelete(rules, 'collect', v || undefined)))),
       row('제한 시간(초)', numberInput(rules.timeLimit as number | undefined, (v) => ed.change(() => setOrDelete(rules, 'timeLimit', v)), '60'), '0이면 시간 제한 없음'),
       h('p', { class: 'ed-note', textContent: '문구와 소리는 src/modules/rules/rules.json의 값을 따라가요.' }),
