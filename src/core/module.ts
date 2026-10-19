@@ -1,3 +1,4 @@
+import type { Assets } from './assets';
 import type { Input } from './input';
 
 // What the core offers to every module. New engine services get added here.
@@ -5,6 +6,7 @@ export interface Game {
   width: number; // game screen size in pixels (e.g. 320x180)
   height: number;
   input: Input;
+  assets: Assets;
 }
 
 // A module is one feature of the engine. It can hook into three moments:

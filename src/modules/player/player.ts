@@ -1,18 +1,25 @@
 import type { Module } from '../../core/module';
-import data from './box.json';
+import data from './player.json';
 
-// Step 3 demo: move the box with the "left/right/up/down" actions, hold "action" to change
-// its color, click to move it to the mouse. It stays inside the screen.
-export function createBox(): Module {
+// Step 4 demo: a character picture moved with the arrow keys. It faces the way it last walked.
+// Click to move it to the mouse.
+export function createPlayer(): Module {
   let x = 0;
   let y = 0;
-  let color = data.color;
+  let facingLeft = false;
+  let w = 16;
+  let h = 16;
 
   return {
-    name: 'box',
-    init(game) {
-      x = (game.width - data.size) / 2;
-      y = (game.height - data.size) / 2;
+    name: 'player',
+    init({ width, height, assets }) {
+      const img = assets.image(data.image);
+      if (img) {
+        w = img.width;
+        h = img.height;
+      }
+      x = (width - w) / 2;
+      y = (height - h) / 2;
     },
     update(dt, { input, width, height }) {
       let dx = 0;
@@ -26,21 +33,19 @@ export function createBox(): Module {
         dx *= Math.SQRT1_2;
         dy *= Math.SQRT1_2;
       }
+      if (dx) facingLeft = dx < 0;
       x += dx * data.speed * dt;
       y += dy * data.speed * dt;
 
       if (input.wasClicked() && input.mouse) {
-        x = input.mouse.x - data.size / 2;
-        y = input.mouse.y - data.size / 2;
+        x = input.mouse.x - w / 2;
+        y = input.mouse.y - h / 2;
       }
-      x = Math.max(0, Math.min(width - data.size, x));
-      y = Math.max(0, Math.min(height - data.size, y));
-
-      color = input.isDown('action') ? data.actionColor : data.color;
+      x = Math.max(0, Math.min(width - w, x));
+      y = Math.max(0, Math.min(height - h, y));
     },
-    draw(ctx, { input }) {
-      ctx.fillStyle = color;
-      ctx.fillRect(Math.round(x), Math.round(y), data.size, data.size);
+    draw(ctx, { assets, input }) {
+      assets.draw(ctx, data.image, x, y, { flipX: facingLeft });
 
       // Mouse cursor as a small cross, so you can see where the game thinks the mouse is.
       if (input.mouse) {
