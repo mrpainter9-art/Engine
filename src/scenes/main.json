@@ -1,13 +1,28 @@
 {
+  "size": { "width": 960, "height": 180 },
   "objects": [
+    { "kind": "tree", "x": 40, "y": 144 },
+    { "kind": "tree", "x": 210, "y": 144 },
+    { "kind": "tree", "x": 380, "y": 144 },
+    { "kind": "tree", "x": 520, "y": 144 },
+    { "kind": "tree", "x": 700, "y": 144 },
+    { "kind": "tree", "x": 880, "y": 144 },
     { "kind": "coin", "x": 60, "y": 60 },
     { "kind": "coin", "x": 90, "y": 60 },
     { "kind": "coin", "x": 120, "y": 60 },
     { "kind": "coin", "x": 230, "y": 110 },
     { "kind": "coin", "x": 270, "y": 40 },
+    { "kind": "coin", "x": 420, "y": 100 },
+    { "kind": "coin", "x": 450, "y": 80 },
+    { "kind": "coin", "x": 480, "y": 60 },
+    { "kind": "coin", "x": 640, "y": 130 },
+    { "kind": "coin", "x": 760, "y": 50 },
+    { "kind": "coin", "x": 920, "y": 140 },
     { "kind": "slime", "x": 140, "y": 148 },
     { "kind": "slime", "x": 200, "y": 90, "distance": 90, "speed": 50 },
-    { "kind": "ghost", "x": 280, "y": 20 },
+    { "kind": "slime", "x": 560, "y": 148, "distance": 120 },
+    { "kind": "slime", "x": 800, "y": 148, "speed": 60 },
+    { "kind": "ghost", "x": 600, "y": 30 },
     { "kind": "player", "x": 20, "y": 148 }
   ]
 }

@@ -35,8 +35,16 @@ export class Engine {
     for (const m of this.modules) m.update?.(dt, this.game);
     this.game.input.endFrame();
 
-    this.ctx.clearRect(0, 0, this.game.width, this.game.height);
-    for (const m of this.modules) m.draw?.(this.ctx, this.game);
+    const { ctx, game } = this;
+    const { camera } = game;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, game.width, game.height);
+    for (const m of this.modules) {
+      // World modules are shifted by the camera; whole pixels keep the dots crisp.
+      if (m.fixed) ctx.setTransform(1, 0, 0, 1, 0, 0);
+      else ctx.setTransform(1, 0, 0, 1, -Math.round(camera.x), -Math.round(camera.y));
+      m.draw?.(ctx, game);
+    }
 
     requestAnimationFrame(this.frame);
   };
