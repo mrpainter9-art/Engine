@@ -1,0 +1,7 @@
+{
+  "left": ["ArrowLeft", "KeyA"],
+  "right": ["ArrowRight", "KeyD"],
+  "up": ["ArrowUp", "KeyW"],
+  "down": ["ArrowDown", "KeyS"],
+  "action": ["Space", "KeyZ"]
+}

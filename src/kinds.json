@@ -1,0 +1,34 @@
+{
+  "player": {
+    "image": "player",
+    "blocks": [
+      { "type": "move-with-keys", "speed": 90 },
+      { "type": "face-movement" },
+      { "type": "stay-in-screen" }
+    ]
+  },
+  "coin": {
+    "image": "coin",
+    "blocks": [
+      { "type": "bob", "height": 2, "speed": 3 },
+      { "type": "vanish-on-touch", "by": "player" }
+    ]
+  },
+  "slime": {
+    "image": "slime",
+    "blocks": [
+      { "type": "patrol", "speed": 30, "distance": 60 },
+      { "type": "face-movement" },
+      { "type": "send-back-on-touch", "target": "player" }
+    ]
+  },
+  "ghost": {
+    "image": "ghost",
+    "blocks": [
+      { "type": "chase", "target": "player", "speed": 18, "range": 90 },
+      { "type": "bob", "height": 1, "speed": 4 },
+      { "type": "face-movement" },
+      { "type": "send-back-on-touch", "target": "player" }
+    ]
+  }
+}

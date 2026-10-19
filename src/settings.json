@@ -1,4 +1,6 @@
 {
   "screenWidth": 320,
-  "screenHeight": 180
+  "screenHeight": 180,
+  "scaling": "sharp",
+  "borderColor": "#111111"
 }

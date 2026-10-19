@@ -5,10 +5,17 @@ Claude와 함께 한 단계씩, 원리를 배우면서 처음부터 다시 만�
 
 - 계획과 단계별 진행: [docs/PLAN.md](docs/PLAN.md)
 
+## 처음 한 번만 준비하기
+1. [Node.js](https://nodejs.org/) LTS를 설치해요.
+2. [GitHub Desktop](https://desktop.github.com/)을 설치하고 GitHub 계정으로 로그인해요.
+3. GitHub Desktop에서 **File → Clone repository** → `mrpainter9-art/Engine`을 골라 내 컴퓨터로 받아요.
+
 ## 실행하기
-1. [Node.js](https://nodejs.org/) LTS를 설치해요. (컴퓨터에 한 번만)
-2. 이 폴더의 `start.bat`을 두 번 눌러요. (맥은 `start.sh`)
-   처음 한 번은 필요한 도구를 내려받느라 조금 걸려요.
-3. 브라우저가 저절로 열리고 엔진 화면이 나와요. 끄려면 검은 창을 닫으면 돼요.
+1. 받은 폴더의 `start.bat`을 두 번 눌러요. (맥은 `start.sh`)
+2. 브라우저가 저절로 열리고 엔진 화면이 나와요. 끄려면 검은 창을 닫으면 돼요.
+
+## 최신으로 바꾸기
+GitHub Desktop 위쪽의 **Fetch origin** → **Pull origin**을 누르면 끝이에요. 다시 내려받을 필요 없어요.
+아직 합치지 않은 PR을 미리 보고 싶으면, 위쪽 **Current branch**에서 `claude/...`로 시작하는 가지를 고르고 `start.bat`을 누르면 돼요.
 
 이전 버전(에디터 포함 첫 시도)은 git 기록의 커밋 `0fb485f`에 그대로 남아 있어요.
