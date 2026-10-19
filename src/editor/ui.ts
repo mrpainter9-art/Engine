@@ -80,11 +80,23 @@ export function thumbnail(img: HTMLImageElement | null, frames = 1, size = 28): 
 }
 
 export const STYLE = `
-#ed-left, #ed-right { display: none; flex-direction: column; background: #1e1e26; color: #ddd; font: 13px system-ui, sans-serif; overflow-y: auto; }
-.ed-editing #ed-left, .ed-editing #ed-right { display: flex; }
-#ed-left { width: 200px; border-right: 1px solid #333; }
-#ed-right { width: 300px; border-left: 1px solid #333; }
+#ed-left, #ed-right { display: flex; flex-direction: column; min-height: 100%; color: #ddd; font: 13px system-ui, sans-serif; }
 #ed-center { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+#ed-area { flex: 1; min-height: 0; position: relative; }
+#ed-area #stage { position: absolute; inset: 0; }
+.ed-win { display: none; position: absolute; flex-direction: column; background: rgba(30, 30, 38, 0.97); border: 1px solid #444; border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5); overflow: hidden; z-index: 1; }
+.ed-win-grip { position: absolute; right: 0; bottom: 0; width: 14px; height: 14px; cursor: nwse-resize;
+  background: linear-gradient(135deg, transparent 50%, #666 50%, #666 60%, transparent 60%, transparent 70%, #666 70%, #666 80%, transparent 80%); }
+.ed-editing .ed-win { display: flex; }
+.ed-win-head { display: flex; align-items: center; gap: 6px; padding: 5px 6px 5px 10px; background: #2a2a35; color: #ccc; font: 12px system-ui, sans-serif;
+  cursor: move; user-select: none; flex: none; }
+.ed-win-head b { flex: 1; }
+.ed-win-head button { background: none !important; border: 0 !important; color: #aaa; cursor: pointer; font-size: 13px; padding: 0 4px; }
+.ed-win-body { flex: 1; overflow-y: auto; }
+.ed-win.ed-folded { height: auto !important; }
+.ed-win.ed-folded .ed-win-grip { display: none; }
+.ed-win.ed-folded .ed-win-body { display: none; }
 #ed-bar { display: flex; gap: 6px; align-items: center; padding: 6px 8px; background: #1e1e26; color: #ddd; font: 13px system-ui, sans-serif; border-bottom: 1px solid #333; flex-wrap: wrap; }
 #ed-bar .ed-status { margin-left: auto; color: #aaa; }
 #ed-bar .ed-status.ed-unsaved { color: #f2c14e; }

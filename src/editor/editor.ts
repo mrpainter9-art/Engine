@@ -6,6 +6,7 @@ import { formatJson } from './format';
 import { duplicate, removeSelected, renderInspector } from './panels';
 import { NAME_RULE, type Ed } from './state';
 import { STYLE, h, selectInput, thumbnail } from './ui';
+import { Panels } from './windows';
 
 // The editor: place objects with the mouse, change kinds, blocks and scenes, and save to the JSON files.
 // It only exists while developing (start.bat) and in the editor demo; exported games don't include it.
@@ -31,6 +32,7 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
   const undo: string[] = [];
   let saved: Record<string, string> = {};
   let message = '';
+  let panels: Panels | null = null;
 
   const left = h('div', { id: 'ed-left' });
   const right = h('div', { id: 'ed-right' });
@@ -304,6 +306,7 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
       game.editing && nameBox,
       game.editing && h('button', { textContent: '↶ 되돌리기', title: 'Ctrl+Z', onclick: () => { const last = undo.pop(); if (last) restore(last); } }),
       h('button', { textContent: canSave ? '저장 (Ctrl+S)' : '저장 (체험판은 꺼짐)', onclick: save }),
+      game.editing && h('button', { textContent: '패널 제자리로', title: '옮기거나 크기를 바꾼 패널을 처음 위치로', onclick: () => panels?.reset() }),
       h('span', {
         class: `ed-status ${changed ? 'ed-unsaved' : ''}`,
         textContent: message || (changed ? `저장 안 된 파일 ${changed}개` : '모두 저장됨'),
@@ -336,7 +339,7 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
       newKind,
       h('label', { class: 'ed-row', style: 'margin:4px 10px' }, h('span', { textContent: '격자 칸', style: 'width:60px' }), grid),
       h('div', { class: 'ed-help', innerHTML:
-        '클릭: 고르기 / 끌기: 옮기기<br>Delete: 지우기 · Ctrl+D: 복제<br>방향키 · 휠 · 오른쪽 끌기: 맵 이동<br>Esc: 고르기 도구로 · Ctrl+Z: 되돌리기<br>Ctrl+S: 파일에 저장' }),
+        '클릭: 고르기 / 끌기: 옮기기<br>Delete: 지우기 · Ctrl+D: 복제<br>방향키 · 휠 · 오른쪽 끌기: 맵 이동<br>Esc: 고르기 도구로 · Ctrl+Z: 되돌리기<br>Ctrl+S: 파일에 저장<br>패널: 제목 끌기로 옮기기, 오른쪽 아래 모서리로 크기' }),
     );
   }
 
@@ -350,11 +353,15 @@ export function createEditor({ kinds, scenes, canSave }: EditorSetup): Module {
       ed.behaviors = g.world.behaviorList();
       canvas = document.getElementById('screen') as HTMLCanvasElement;
       document.head.append(h('style', { textContent: STYLE }));
+      // The scene fills the window under the top bar; the panels float over it and can be moved and resized.
       const app = document.getElementById('app')!;
       const stage = document.getElementById('stage')!;
-      const center = h('div', { id: 'ed-center' }, bar);
-      app.replaceChildren(left, center, right);
-      center.append(stage);
+      const area = h('div', { id: 'ed-area' });
+      app.replaceChildren(h('div', { id: 'ed-center' }, bar, area));
+      area.append(stage);
+      panels = new Panels(area);
+      panels.add({ id: 'kinds', title: '놓을 물건', content: left, place: (_w, ah) => ({ x: 8, y: 8, w: 200, h: Math.min(560, ah - 16) }) });
+      panels.add({ id: 'inspector', title: '고치기', content: right, place: (aw, ah) => ({ x: aw - 316, y: 8, w: 308, h: Math.min(680, ah - 16) }) });
       saved = files();
       setupMouse();
       // After a page reload, come back to the same scene and mode.
