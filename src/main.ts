@@ -65,19 +65,27 @@ const game: Game = {
   camera: new Camera(canvas.width, canvas.height, canvas.width, canvas.height),
   vars: {},
   paused: false,
+  editing: false,
   scene: { objects: [] },
   sceneName: '',
   goTo: () => {}, // the engine fills this in
 };
 
 // Register modules here. Removing a feature = removing its line. Earlier modules draw first (behind).
-new Engine(ctx, game, scenes)
+const engine = new Engine(ctx, game, scenes)
   .add(createBackground())
   .add(world)
   .add(createTexts())
   .add(createRules())
-  .add(createMusic())
-  .start(settings.firstScene);
+  .add(createMusic());
+
+// The editor (step 14) is only there while developing, not in exported games.
+if (import.meta.env.DEV || __EDITOR_DEMO__) {
+  const { createEditor } = await import('./editor/editor');
+  engine.add(createEditor({ kinds: kinds as Record<string, KindDef>, scenes, canSave: import.meta.env.DEV }));
+}
+
+engine.start(settings.firstScene);
 
 // Lets you look at the game from the browser console while developing (type "game").
 if (import.meta.env.DEV) Object.assign(window, { game });

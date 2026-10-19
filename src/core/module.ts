@@ -24,6 +24,8 @@ export interface Game {
   /** The scene being played and its file name. */
   scene: SceneData;
   sceneName: string;
+  /** True while the editor is open: only modules marked whileEditing keep updating. */
+  editing: boolean;
   /** Switch to another scene (or the same one, to start it over) after this frame. */
   goTo(name: string): void;
 }
@@ -34,6 +36,8 @@ export interface Module {
   name: string;
   /** true = drawn fixed on the screen (scores, menus); otherwise drawn in the world and moves with the camera. */
   fixed?: boolean;
+  /** true = keeps updating while the game is being edited (the editor itself). */
+  whileEditing?: boolean;
   init?(game: Game): void;
   /** Called every time a scene starts (also when the same scene starts over). */
   enter?(game: Game): void;

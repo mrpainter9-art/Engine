@@ -5,10 +5,12 @@ import type { Behavior } from '../core/world';
 // edges (true = also turn around before walking off a ledge).
 export const patrol: Behavior = {
   type: 'patrol',
+  label: '왔다 갔다',
+  defaults: { speed: 30, distance: 60, edges: false },
   setup(_o, _p, s) {
     s.dir = 1;
   },
-  update(o, { speed = 30, distance = 60, edges = false }, s, dt, { world }) {
+  update(o, { speed, distance, edges }, s, dt, { world }) {
     if (world.move(o, s.dir * speed * dt, 0).x) s.dir = -s.dir;
     if (distance > 0 && o.x > o.startX + distance) s.dir = -1;
     if (distance > 0 && o.x < o.startX) s.dir = 1;

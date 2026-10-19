@@ -41,6 +41,11 @@ export class Assets {
     ]);
   }
 
+  /** Every picture name (for the editor's lists). */
+  names(): string[] {
+    return [...this.images.keys()].sort();
+  }
+
   image(name: string): HTMLImageElement | null {
     return this.images.get(name) ?? null;
   }

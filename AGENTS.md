@@ -18,11 +18,15 @@ The owner is a game designer with no coding background who wants to learn how an
 ## Layout
 - `src/main.ts` registers modules. `src/core/` engine loop + `Module` interface. `src/modules/<name>/` one feature each, values in a JSON next to it.
   `src/kinds.json` object kinds = image + list of behavior blocks. `src/behaviors/<block>.ts` one block each (registered with `world.addBehavior`, documented in `docs/BLOCKS.md`).
-  `src/scenes/*.json` place objects by kind and position. Prefer a new block over kind-specific code.
+  `src/scenes/*.json` one scene each (size, background, music, texts, rules, next, objects; see `docs/SCENES.md`).
+  Prefer a new block over kind-specific code. A block declares `label` (Korean, shown in the editor) and `defaults` (every value it reads).
+- `src/editor/` the in-browser editor (dev only, not in exported games). It saves through `tools/editor-server.ts`
+  (writes only `src/kinds.json` and `src/scenes/*.json`). Keep JSON hand-written style (`src/editor/format.ts`).
+- Export: `npm run export` → `export/game.html` (one file). `EDITOR_DEMO=1 npm run export` → `export/editor-demo.html`.
 - Run: `start.bat` / `start.sh` (or `npm run dev`). Before finishing: `npm run check`.
 
 ## Structure rules
-- Tiny core: runs the loop and registers modules, nothing else.
+- Tiny core: runs the loop, registers modules and switches scenes, nothing else.
 - One feature = one folder = one module. Removing a feature = removing its registration line.
 - Modules do not import each other; they talk through the core.
 - No target game and no copying another engine's design (the old train game and Godot are not references).

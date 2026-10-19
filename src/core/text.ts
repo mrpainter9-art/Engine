@@ -1,4 +1,5 @@
 import fontUrl from '/assets/fonts/Galmuri9.woff2?url';
+import { readBytes } from './files';
 
 // Text on the game screen, in a Korean pixel font (Galmuri9 by Lee Minseo, SIL Open Font License).
 // The font is drawn at its native size so every letter stays on whole pixels.
@@ -6,7 +7,7 @@ const FONT = 'Galmuri9';
 const SIZE = 10;
 
 export async function loadFont(): Promise<void> {
-  const face = new FontFace(FONT, `url(${fontUrl})`);
+  const face = new FontFace(FONT, await readBytes(fontUrl));
   document.fonts.add(await face.load());
 }
 

@@ -24,6 +24,8 @@ export interface GameObject {
   /** Solid objects stop others that move with world.move (walls, floors, platforms). */
   solid: boolean;
   blocks: BlockInstance[];
+  /** The scene line this object was made from (the editor uses it to move or change the object). */
+  source: Placement;
 }
 
 /** Values a block gets from kinds.json (and the scene), e.g. { speed: 30, distance: 60 }. */
@@ -33,6 +35,12 @@ export type Params = Record<string, any>;
 // One block = one file in src/behaviors/. Kinds are made by listing blocks in kinds.json.
 export interface Behavior {
   type: string;
+  /** Name shown in the editor. */
+  label?: string;
+  /** Every value the block reads, with the value used when kinds.json doesn't give one. */
+  defaults?: Params;
+  /** Values that must be one of a list, e.g. { axes: ['both', 'horizontal'] }. */
+  choices?: Record<string, string[]>;
   setup?(obj: GameObject, params: Params, state: Record<string, any>, game: Game): void;
   update?(obj: GameObject, params: Params, state: Record<string, any>, dt: number, game: Game): void;
 }
@@ -92,7 +100,7 @@ export class World implements Module {
       kind: name, x, y, startX: x, startY: y,
       w: Number(p.w ?? frameWidth), h: Number(p.h ?? img?.height ?? 16),
       image: kind.image, flipX: false, anim: '', animTime: 0,
-      vx: 0, vy: 0, onGround: false, solid: false, blocks: [],
+      vx: 0, vy: 0, onGround: false, solid: false, blocks: [], source: p,
     };
     for (const { type, ...values } of kind.blocks) {
       const behavior = this.behaviors.get(type);
@@ -101,13 +109,18 @@ export class World implements Module {
         continue;
       }
       // A scene line can change a block's value just for this one object, e.g. "distance": 90.
-      const params: Params = { ...values };
-      for (const key of Object.keys(values)) if (key in overrides) params[key] = overrides[key];
+      const params: Params = { ...behavior.defaults, ...values };
+      for (const key of Object.keys(params)) if (key in overrides) params[key] = overrides[key];
       obj.blocks.push({ behavior, params, state: {} });
     }
     this.objects.push(obj);
     for (const b of obj.blocks) b.behavior.setup?.(obj, b.params, b.state, this.game);
     return obj;
+  }
+
+  /** Every block kinds.json can use (for the editor's block list). */
+  behaviorList(): Behavior[] {
+    return [...this.behaviors.values()];
   }
 
   remove(obj: GameObject): void {

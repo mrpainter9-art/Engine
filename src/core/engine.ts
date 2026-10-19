@@ -55,7 +55,7 @@ export class Engine {
     const dt = Math.min((time - this.lastTime) / 1000, MAX_DT);
     this.lastTime = time;
 
-    for (const m of this.modules) m.update?.(dt, this.game);
+    for (const m of this.modules) if (!this.game.editing || m.whileEditing) m.update?.(dt, this.game);
     this.game.input.endFrame();
     if (this.nextScene !== null) {
       const name = this.nextScene;

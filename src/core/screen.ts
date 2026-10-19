@@ -22,14 +22,16 @@ export function setupScreen(canvas: HTMLCanvasElement, s: ScreenSettings): Canva
 
   const resize = () => {
     // Work in device pixels so a "x3" zoom is really 3 screen pixels on high-DPI displays.
+    // The canvas fills the box it sits in (the whole window, or the space next to the editor panels).
     const dpr = window.devicePixelRatio || 1;
-    const fit = Math.min((window.innerWidth * dpr) / s.screenWidth, (window.innerHeight * dpr) / s.screenHeight);
+    const box = canvas.parentElement ?? document.body;
+    const fit = Math.min((box.clientWidth * dpr) / s.screenWidth, (box.clientHeight * dpr) / s.screenHeight);
     const zoom = s.scaling === 'sharp' ? Math.max(1, Math.floor(fit)) : fit;
     canvas.style.width = `${(s.screenWidth * zoom) / dpr}px`;
     canvas.style.height = `${(s.screenHeight * zoom) / dpr}px`;
     canvas.dataset.zoom = zoom.toFixed(2);
   };
-  window.addEventListener('resize', resize);
+  new ResizeObserver(resize).observe(canvas.parentElement ?? document.body);
   resize();
   return ctx;
 }

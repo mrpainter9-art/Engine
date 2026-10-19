@@ -1,3 +1,4 @@
+import { readBytes } from './files';
 import { warn } from './warn';
 
 // Sounds: every file in assets/sounds/ is found automatically and used by its file name
@@ -34,13 +35,18 @@ export class Sound {
     await Promise.all(
       Object.entries(files).map(async ([path, url]) => {
         try {
-          const data = await (await fetch(url)).arrayBuffer();
+          const data = await readBytes(url);
           this.buffers.set(path.replace(/^\/assets\/sounds\//, '').replace(/\.\w+$/, ''), await this.ctx.decodeAudioData(data));
         } catch {
           console.warn(`Could not read sound: ${path}`);
         }
       }),
     );
+  }
+
+  /** Every sound name (for the editor's lists). */
+  names(): string[] {
+    return [...this.buffers.keys()].sort();
   }
 
   /** Play an effect once. An empty name does nothing, so blocks can leave sound off. */
